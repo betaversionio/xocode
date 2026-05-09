@@ -1,0 +1,43 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GeneratorType {
+  Project
+  Feature
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  password   String?
+  name       String?
+  githubId   String?     @unique
+  githubUrl  String?
+  generators Generator[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@map("users")
+}
+
+model Generator {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  type        GeneratorType
+  githubUrl   String
+  description String?
+  tags        String[]      @default([])
+  downloads   Int           @default(0)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("generators")
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@xo/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main",
+    "start:prod": "node dist/main",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint \"{src,test}/**/*.ts\""
+  },
+  "dependencies": {
+    "@xo/database": "workspace:*",
+    "@xo/shared": "workspace:*",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/swagger": "^11.0.0",
+    "@scalar/nestjs-api-reference": "^1.1.0",
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
+    "morgan": "^1.10.1",
+    "nestjs-zod": "^5.3.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@xo/typescript-config": "workspace:*",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@swc/cli": "^0.8.0",
+    "@swc/core": "^1.15.0",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^5.0.0",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3"
+  }
+}

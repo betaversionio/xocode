@@ -1,0 +1,35 @@
+{
+  "name": "@xo/core",
+  "version": "0.1.0",
+  "description": "xo engine — signal scanner, action runner, generator runner",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0",
+    "handlebars": "^4.7.8",
+    "inquirer": "^9.3.7",
+    "ts-morph": "^24.0.0",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@xo/typescript-config": "workspace:*",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.9.3"
+  }
+}

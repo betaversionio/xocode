@@ -1,0 +1,85 @@
+{
+  "name": "@xo/vscode",
+  "displayName": "xo",
+  "description": "xo generator engine — scaffold and extend any project from VS Code",
+  "version": "0.1.0",
+  "publisher": "xo",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "main": "dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "xo-sidebar",
+          "title": "xo",
+          "icon": "assets/xo.svg"
+        }
+      ]
+    },
+    "views": {
+      "xo-sidebar": [
+        {
+          "id": "xo.templates",
+          "name": "Templates",
+          "description": "Project templates (xo create)"
+        },
+        {
+          "id": "xo.features",
+          "name": "Features",
+          "description": "Add features (xo add)"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "xo.refresh", "title": "xo: Refresh", "icon": "$(refresh)" },
+      { "command": "xo.runTemplate", "title": "xo: Create from Template" },
+      { "command": "xo.runFeature", "title": "xo: Add Feature" },
+      { "command": "xo.openSettings", "title": "xo: Open Settings" }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "xo.refresh",
+          "when": "view == xo.templates || view == xo.features",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "xo.runTemplate",
+          "when": "view == xo.templates && viewItem == generator",
+          "group": "inline"
+        },
+        {
+          "command": "xo.runFeature",
+          "when": "view == xo.features && viewItem == generator",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "xo",
+      "properties": {
+        "xo.registryUrl": {
+          "type": "string",
+          "default": "https://api.xo.dev",
+          "description": "xo registry API URL"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --platform=node --format=cjs --sourcemap",
+    "dev": "npm run build -- --watch=forever",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@xo/typescript-config": "workspace:*",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.9.3"
+  }
+}

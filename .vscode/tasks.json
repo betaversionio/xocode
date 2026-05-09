@@ -1,0 +1,132 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Dev — All (Turbo)",
+      "type": "shell",
+      "command": "pnpm dev",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "⚙️ Dev — API (NestJS)",
+      "type": "shell",
+      "command": "pnpm dev:api",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "🌐 Dev — Web (Next.js)",
+      "type": "shell",
+      "command": "pnpm dev:web",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "🧩 Dev — VS Code Extension",
+      "type": "shell",
+      "command": "pnpm dev:vscode",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "🔧 Dev — Core Engine",
+      "type": "shell",
+      "command": "pnpm dev:core",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "💻 Dev — CLI",
+      "type": "shell",
+      "command": "pnpm dev:cli",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "🗄️ DB — Prisma Studio",
+      "type": "shell",
+      "command": "pnpm db:studio",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "📦 DB — Push Schema",
+      "type": "shell",
+      "command": "pnpm db:push",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "📦 DB — Run Migrations",
+      "type": "shell",
+      "command": "pnpm db:migrate",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🌱 DB — Seed",
+      "type": "shell",
+      "command": "pnpm db:seed",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "⚡ DB — Generate Prisma Client",
+      "type": "shell",
+      "command": "pnpm db:generate",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🔍 Type Check — All Packages",
+      "type": "shell",
+      "command": "pnpm type-check",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "🏗️ Build — All",
+      "type": "shell",
+      "command": "pnpm build",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🧹 Clean — All",
+      "type": "shell",
+      "command": "pnpm clean",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "📤 Publish — CLI (xocode)",
+      "type": "shell",
+      "command": "pnpm publish:cli",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    }
+  ]
+}

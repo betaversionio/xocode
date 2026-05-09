@@ -1,0 +1,33 @@
+{
+  "name": "xocode",
+  "version": "0.1.0",
+  "description": "xo — universal generator engine CLI",
+  "bin": {
+    "xo": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xo/core": "workspace:*",
+    "commander": "^12.1.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.1.1"
+  },
+  "devDependencies": {
+    "@xo/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.9.3"
+  }
+}

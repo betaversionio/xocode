@@ -1,0 +1,44 @@
+{
+  "name": "xo",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:api": "pnpm --filter @xo/api dev",
+    "dev:web": "pnpm --filter @xo/web dev",
+    "dev:vscode": "pnpm --filter @xo/vscode dev",
+    "dev:core": "pnpm --filter @xo/core dev",
+    "dev:cli": "pnpm --filter xocode dev",
+    "publish:cli": "pnpm --filter xocode build && pnpm --filter xocode publish --access public --no-git-checks",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @xo/database db:generate",
+    "db:migrate": "pnpm --filter @xo/database db:migrate",
+    "db:push": "pnpm --filter @xo/database db:push",
+    "db:seed": "pnpm --filter @xo/database db:seed",
+    "db:studio": "pnpm --filter @xo/database db:studio",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3",
+    "turbo": "^2.9.6",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "argon2",
+      "esbuild"
+    ]
+  },
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
