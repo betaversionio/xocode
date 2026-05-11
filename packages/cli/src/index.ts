@@ -1,6 +1,17 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
+import { execSync } from "node:child_process";
+import path from "node:path";
+import os from "node:os";
+import fs from "fs-extra";
+import prompts from "prompts";
+import {
+  readGlobalConfig,
+  getConfigValue,
+  setConfigValue,
+  CONFIG_META,
+} from "./global-config.js";
 import {
   runWorkflow,
   undoLastOperation,
@@ -16,10 +27,12 @@ import {
 
 const program = new Command();
 
+declare const __PKG_VERSION__: string;
+
 program
   .name("xo")
   .description("Local workflow engine for developers — compose actions into workflows")
-  .version("0.1.0");
+  .version(__PKG_VERSION__);
 
 function parseInputFlags(flags: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -288,11 +301,300 @@ registry
     console.log();
   });
 
+// ─── xo init ─────────────────────────────────────────────────────────────────
+
+program
+  .command("init [dir]")
+  .description("Scaffold a new generator repo (workflow.yaml, templates/, actions/)")
+  .action(async (dir?: string) => {
+    const targetDir = path.resolve(dir ?? process.cwd());
+
+    console.log(chalk.bold("\nInitializing new xo generator\n"));
+
+    const answers = await prompts([
+      {
+        type: "text",
+        name: "name",
+        message: "Generator name (e.g. ui/button or payment/stripe)?",
+        validate: (v: string) => v.trim().length > 0 ? true : "Name is required",
+      },
+      {
+        type: "text",
+        name: "description",
+        message: "Short description?",
+      },
+      {
+        type: "multiselect",
+        name: "triggers",
+        message: "Which triggers does this generator handle?",
+        choices: [
+          { title: "add", value: "add", selected: true },
+          { title: "create", value: "create" },
+          { title: "run", value: "run" },
+        ],
+        min: 1,
+      },
+    ], { onCancel: () => process.exit(0) });
+
+    const { name, description, triggers } = answers as {
+      name: string;
+      description: string;
+      triggers: string[];
+    };
+
+    const triggersYaml = `[${triggers.join(", ")}]`;
+    const hasMultipleTriggers = triggers.length > 1;
+
+    await fs.ensureDir(targetDir);
+    await fs.ensureDir(path.join(targetDir, "templates"));
+    await fs.ensureDir(path.join(targetDir, "actions"));
+
+    if (hasMultipleTriggers) {
+      await fs.ensureDir(path.join(targetDir, "workflows"));
+      for (const trigger of triggers) {
+        await fs.writeFile(
+          path.join(targetDir, "workflows", `${trigger}.yaml`),
+          buildWorkflowYaml(name, `[${trigger}]`, description),
+          "utf8",
+        );
+      }
+    } else {
+      await fs.writeFile(
+        path.join(targetDir, "workflow.yaml"),
+        buildWorkflowYaml(name, triggersYaml, description),
+        "utf8",
+      );
+    }
+
+    await fs.writeFile(
+      path.join(targetDir, "README.md"),
+      buildReadme(name, description, triggers),
+      "utf8",
+    );
+
+    console.log(chalk.green(`\n✔ Generator scaffolded at ${chalk.bold(targetDir)}\n`));
+    console.log(chalk.dim("  Files created:"));
+    if (hasMultipleTriggers) {
+      for (const t of triggers) console.log(chalk.dim(`    workflows/${t}.yaml`));
+    } else {
+      console.log(chalk.dim("    workflow.yaml"));
+    }
+    console.log(chalk.dim("    templates/"));
+    console.log(chalk.dim("    actions/"));
+    console.log(chalk.dim("    README.md"));
+    console.log();
+    console.log(chalk.dim(`  Next steps:`));
+    console.log(chalk.dim(`    1. Add your templates to ${chalk.white("templates/")}`));
+    console.log(chalk.dim(`    2. Fill in the jobs in ${chalk.white(hasMultipleTriggers ? "workflows/*.yaml" : "workflow.yaml")}`));
+    console.log(chalk.dim(`    3. Run ${chalk.white("xo link")} to test locally`));
+    console.log();
+  });
+
+// ─── xo self-update ──────────────────────────────────────────────────────────
+
+program
+  .command("self-update")
+  .description("Check for a newer version of xo and update if available")
+  .action(async () => {
+    const PACKAGE = "@xo-code/cli";
+    const current = program.version() ?? "0.0.0";
+    const spinner = ora("Checking for updates...").start();
+
+    try {
+      const res = await fetch(`https://registry.npmjs.org/${PACKAGE}/latest`);
+      if (!res.ok) throw new Error(`Registry returned ${res.status}`);
+      const { version: latest } = await res.json() as { version: string };
+
+      if (latest === current) {
+        spinner.succeed(chalk.green(`Already on the latest version (${current})`));
+        return;
+      }
+
+      if (!isNewer(latest, current)) {
+        spinner.succeed(chalk.green(`Already on the latest version (${current})`));
+        return;
+      }
+
+      spinner.text = `Updating ${current} → ${chalk.green(latest)}...`;
+      execSync(`npm install -g ${PACKAGE}@${latest}`, { stdio: "inherit" });
+      spinner.succeed(chalk.green(`Updated to ${latest} — run xo --version to confirm`));
+    } catch (err) {
+      spinner.fail(chalk.red(`Update failed: ${(err as Error).message}`));
+      process.exit(1);
+    }
+  });
+
+// ─── xo config ───────────────────────────────────────────────────────────────
+
+const config = program.command("config").description("Get and set global xo configuration");
+
+config
+  .command("get <key>")
+  .description("Get a config value")
+  .action(async (key: string) => {
+    try {
+      const value = await getConfigValue(key);
+      if (value === undefined) {
+        console.log(chalk.dim(`${key} is not set`));
+      } else {
+        console.log(`${chalk.dim(key + ":")} ${chalk.white(String(value))}`);
+      }
+    } catch (err) {
+      console.error(chalk.red(`✖ ${(err as Error).message}`));
+      process.exit(1);
+    }
+  });
+
+config
+  .command("set <key> <value>")
+  .description("Set a config value")
+  .action(async (key: string, value: string) => {
+    try {
+      await setConfigValue(key, value);
+      console.log(chalk.green(`✔ ${key} = ${value}`));
+    } catch (err) {
+      console.error(chalk.red(`✖ ${(err as Error).message}`));
+      process.exit(1);
+    }
+  });
+
+config
+  .command("list")
+  .description("List all config keys, their current values, and defaults")
+  .action(async () => {
+    const current = await readGlobalConfig();
+    console.log(chalk.bold("\nxo global config\n"));
+    for (const [key, meta] of Object.entries(CONFIG_META)) {
+      const value = (current as Record<string, unknown>)[key];
+      const valueStr = value === undefined ? chalk.dim("(not set)") : chalk.white(String(value));
+      const defaultStr = meta.default ? chalk.dim(` default: ${meta.default}`) : "";
+      console.log(`  ${chalk.cyan(key.padEnd(16))} ${valueStr}${defaultStr}`);
+      console.log(`  ${" ".repeat(16)} ${chalk.dim(meta.description)}`);
+      console.log();
+    }
+  });
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function collect(val: string, acc: string[]): string[] {
   acc.push(val);
   return acc;
 }
+
+function isNewer(latest: string, current: string): boolean {
+  const parse = (v: string) => v.split(".").map(Number);
+  const [lMaj, lMin, lPat] = parse(latest);
+  const [cMaj, cMin, cPat] = parse(current);
+  if (lMaj !== cMaj) return (lMaj ?? 0) > (cMaj ?? 0);
+  if (lMin !== cMin) return (lMin ?? 0) > (cMin ?? 0);
+  return (lPat ?? 0) > (cPat ?? 0);
+}
+
+// ─── xo init helpers ─────────────────────────────────────────────────────────
+
+function buildWorkflowYaml(name: string, triggers: string, description: string): string {
+  return `name: ${name}
+on: ${triggers}
+description: ${description || name}
+
+inputs: {}
+  # componentName:
+  #   prompt: "Component name?"
+  #   default: MyComponent
+
+jobs:
+  detect:
+    steps:
+      - uses: xo/detect-pm
+        id: pm
+      # - uses: xo/pkg-installed
+      #   id: hasDep
+      #   with:
+      #     pkg: react
+
+  main:
+    needs: [detect]
+    steps: []
+      # - uses: xo/template
+      #   with:
+      #     from: templates/example.ts
+      #     to: "src/{{inputs.componentName}}.ts"
+`;
+}
+
+function buildReadme(name: string, description: string, triggers: string[]): string {
+  const installLines = triggers
+    .map((t) => `xo ${t} ${name}`)
+    .join("\n");
+  return `# ${name}
+
+${description || "An xo generator."}
+
+## Usage
+
+\`\`\`bash
+${installLines}
+\`\`\`
+
+## Development
+
+\`\`\`bash
+xo link          # link locally for testing
+xo ${triggers[0]} ${name}  # run from any project
+xo unlink        # remove when done
+\`\`\`
+`;
+}
+
+// ─── auto-update notification ─────────────────────────────────────────────────
+
+const UPDATE_CACHE = path.join(os.homedir(), ".xo", "update-check.json");
+const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // once per day
+
+program.hook("postAction", async () => {
+  try {
+    const globalConfig = await readGlobalConfig();
+    if (!globalConfig.autoUpdate) return;
+
+    let cache: { lastCheck: number; latest: string } = { lastCheck: 0, latest: __PKG_VERSION__ };
+    if (await fs.pathExists(UPDATE_CACHE)) {
+      cache = await fs.readJson(UPDATE_CACHE).catch(() => cache);
+    }
+
+    const now = Date.now();
+    let latest = cache.latest;
+
+    if (now - cache.lastCheck >= CHECK_INTERVAL_MS) {
+      const registryBase = globalConfig.registryUrl.replace(/\/$/, "");
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+      try {
+        const res = await fetch(`${registryBase}/@xo-code/cli/latest`, {
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          ({ version: latest } = await res.json() as { version: string });
+          await fs.ensureDir(path.dirname(UPDATE_CACHE));
+          await fs.writeJson(UPDATE_CACHE, { lastCheck: now, latest });
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    if (isNewer(latest, __PKG_VERSION__)) {
+      console.log(
+        chalk.dim(`\n  Update available `) +
+        chalk.yellow(__PKG_VERSION__) +
+        chalk.dim(" → ") +
+        chalk.green(latest) +
+        chalk.dim("  run ") +
+        chalk.white("xo self-update"),
+      );
+    }
+  } catch {
+    // silently ignore — update check is best-effort
+  }
+});
 
 program.parse();

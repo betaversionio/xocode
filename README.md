@@ -1,4 +1,10 @@
-# xo — Local Workflow Engine for Developers
+<div align="center">
+  <img src="https://raw.githubusercontent.com/betaversionio/xocode/main/apps/web/public/android-chrome-512x512.png" width="96" alt="xo logo" />
+  <h1>xo — Local Workflow Engine for Developers</h1>
+  <p>GitHub Actions for your local machine.</p>
+</div>
+
+---
 
 `xo` is a local workflow engine for project scaffolding, feature addition, and task automation. Think of it as GitHub Actions — but running on your machine, against your project.
 
@@ -6,7 +12,22 @@ Define reusable **actions**, compose them into **workflows**, share them through
 
 ---
 
-## Quick Start
+## Install
+
+```bash
+npm install -g xocode
+```
+
+Then use it as `xo`:
+
+```bash
+xo --version
+xo add ui/button
+```
+
+---
+
+## Q
 
 ```bash
 # From the registry (registered name)
@@ -20,12 +41,12 @@ xo add @github/my-org/xo-ui/button@v1.2.0   # pinned to tag
 xo add @github/my-org/xo-ui/button#dev      # pinned to branch
 ```
 
-| Command | What it does |
-|---|---|
-| `xo create <template>` | Scaffold a new project |
-| `xo add <feature>` | Add a feature to an existing project |
-| `xo run <task>` | Run a named task |
-| `xo undo` | Revert the last operation |
+| Command                | What it does                         |
+| ---------------------- | ------------------------------------ |
+| `xo create <template>` | Scaffold a new project               |
+| `xo add <feature>`     | Add a feature to an existing project |
+| `xo run <task>`        | Run a named task                     |
+| `xo undo`              | Revert the last operation            |
 
 ---
 
@@ -50,9 +71,9 @@ inputs:
 jobs:
   detect:
     steps:
-      - uses: xo/detect-pm        # outputs: { value: "pnpm" }
+      - uses: xo/detect-pm # outputs: { value: "pnpm" }
         id: pm
-      - uses: xo/pkg-installed    # outputs: { installed: true }
+      - uses: xo/pkg-installed # outputs: { installed: true }
         id: hasNext
         with:
           pkg: next
@@ -83,15 +104,16 @@ jobs:
 
 ## Two Repo Roles
 
-| | Generator repo | Project repo |
-|---|---|---|
-| Lives on | GitHub | Your machine |
-| Contains | `workflow.yaml`, `templates/`, `scripts/` | `xo.config.yaml`, `.xo/state.json` |
-| Written by | Generator author | xo (automatically) |
-| Registered via | `xo registry add <name> --url <github-url>` | — |
-| Used via | `xo add <name>` | — |
+|                | Generator repo                              | Project repo                       |
+| -------------- | ------------------------------------------- | ---------------------------------- |
+| Lives on       | GitHub                                      | Your machine                       |
+| Contains       | `workflow.yaml`, `templates/`, `scripts/`   | `xo.config.yaml`, `.xo/state.json` |
+| Written by     | Generator author                            | xo (automatically)                 |
+| Registered via | `xo registry add <name> --url <github-url>` | —                                  |
+| Used via       | `xo add <name>`                             | —                                  |
 
 **Generator repo** — what you publish:
+
 ```
 xo-stripe/
 ├── workflow.yaml
@@ -100,6 +122,7 @@ xo-stripe/
 ```
 
 **Project repo** — what xo adds to your project:
+
 ```
 my-app/
 ├── xo.config.yaml      ← tracks template, features, config namespaces
@@ -111,13 +134,13 @@ my-app/
 
 ## Mental Model
 
-| GitHub Actions | xo |
-|---|---|
-| `.github/workflows/ci.yml` | `workflow.yaml` in a generator repo |
-| `actions/checkout` | `xo/install-pkg`, `xo/copy`, `xo/detect-pm` |
-| `on: push` | `on: [add]`, `on: [create]`, `on: [run]` |
-| `steps.<id>.outputs.*` | `steps.<id>.outputs.*` |
-| GitHub Marketplace | xo registry |
+| GitHub Actions             | xo                                          |
+| -------------------------- | ------------------------------------------- |
+| `.github/workflows/ci.yml` | `workflow.yaml` in a generator repo         |
+| `actions/checkout`         | `xo/install-pkg`, `xo/copy`, `xo/detect-pm` |
+| `on: push`                 | `on: [add]`, `on: [create]`, `on: [run]`    |
+| `steps.<id>.outputs.*`     | `steps.<id>.outputs.*`                      |
+| GitHub Marketplace         | xo registry                                 |
 
 The key difference: GitHub Actions runs in CI/CD in the cloud. xo runs locally on your machine. Detection is explicit — generators define their own detection steps via `xo/detect-pm`, `xo/file-exists`, `xo/pkg-installed`. The engine core knows nothing about frameworks or languages.
 
@@ -159,16 +182,16 @@ Running workflow: payment/stripe
 
 ## Documentation
 
-| Doc | Description |
-|---|---|
-| [CLI Reference](docs/cli.md) | All commands and flags |
-| [Workflow Reference](docs/workflows.md) | `workflow.yaml` full reference |
-| [Action Reference](docs/actions.md) | Built-in actions and detection actions |
-| [Generator Reference](docs/generators.md) | Repo structure, registry, writing generators |
-| [Project Config](docs/config.md) | `xo.config.yaml`, `.xo/state.json`, context variables |
+| Doc                                       | Description                                           |
+| ----------------------------------------- | ----------------------------------------------------- |
+| [CLI Reference](docs/cli.md)              | All commands and flags                                |
+| [Workflow Reference](docs/workflows.md)   | `workflow.yaml` full reference                        |
+| [Action Reference](docs/actions.md)       | Built-in actions and detection actions                |
+| [Generator Reference](docs/generators.md) | Repo structure, registry, writing generators          |
+| [Project Config](docs/config.md)          | `xo.config.yaml`, `.xo/state.json`, context variables |
 
 ---
 
 ## Status
 
-> v0.1 MVP — spec complete, implementation in progress.
+> v0.1.0 — initial release. Core engine, CLI, built-in actions, custom actions, xo link, registry, and `@github/` direct references are all working.

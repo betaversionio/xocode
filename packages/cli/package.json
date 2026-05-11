@@ -1,32 +1,50 @@
 {
-  "name": "xocode",
-  "version": "0.1.0",
-  "description": "xo — universal generator engine CLI",
-  "bin": {
-    "xo": "./dist/index.js"
+  "name": "@xo-code/cli",
+  "version": "0.1.2",
+  "description": "xo — local workflow engine for developers",
+  "license": "MIT",
+  "author": "satyamlohiya",
+  "homepage": "https://github.com/betaversionio/xocode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/betaversionio/xocode"
   },
-  "main": "./dist/index.js",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
+  "keywords": [
+    "xo",
+    "generator",
+    "workflow",
+    "scaffold",
+    "cli",
+    "codegen"
+  ],
+  "bin": {
+    "xo": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "@xo/core": "workspace:*",
-    "commander": "^12.1.0",
-    "chalk": "^5.3.0",
-    "ora": "^8.1.1"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
-    "@xo/typescript-config": "workspace:*",
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.0.0",
+    "@types/prompts": "^2.4.9",
+    "@xo/core": "workspace:*",
+    "@xo/typescript-config": "workspace:*",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.3.4",
+    "ora": "^8.1.1",
+    "prompts": "^2.4.2",
     "tsup": "^8.3.0",
     "typescript": "^5.9.3"
   }

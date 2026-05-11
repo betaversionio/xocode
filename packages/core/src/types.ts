@@ -1,10 +1,13 @@
 export type WorkflowTrigger = "add" | "create" | "run";
 
+export type WorkflowChoice = string | { value: string; label: string }
+
 export interface WorkflowInput {
-  prompt: string;
+  prompt?: string;
+  description?: string;
   required?: boolean;
-  type?: "input" | "select" | "confirm" | "multiselect";
-  choices?: string[];
+  type?: "text" | "select" | "confirm" | "multiselect";
+  choices?: WorkflowChoice[];
   default?: string | boolean;
 }
 
