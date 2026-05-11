@@ -92,7 +92,7 @@ export interface ActionDef {
   // Composite shorthand: steps at root
   steps?: Step[];
   runs?: {
-    using: "node" | "composite";
+    using: "node" | "composite" | "prompt";
     main?: string;   // node: JS file path relative to action dir
     steps?: Step[];  // composite: alternative to root-level steps
   };

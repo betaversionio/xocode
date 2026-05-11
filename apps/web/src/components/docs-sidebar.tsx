@@ -15,6 +15,7 @@ const sections = [
     title: "Building Generators",
     links: [
       { href: "/docs/creating-generators", label: "Creating a Generator" },
+      { href: "/docs/workflows", label: "Workflow Reference" },
       { href: "/docs/actions", label: "Actions Reference" },
       { href: "/docs/signals", label: "Signals Reference" },
     ],
@@ -23,6 +24,7 @@ const sections = [
     title: "Tools",
     links: [
       { href: "/docs/cli-reference", label: "CLI Reference" },
+      { href: "/docs/config", label: "Config Reference" },
     ],
   },
 ];

@@ -5,13 +5,14 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import type { ActionDef, Step, RunContext } from "../types.js";
 import { isGitHubRef, parseGitHubRef } from "../github-resolver/index.js";
 import { interpolate } from "../utils/interpolate.js";
+import { collectInputs } from "../prompt-engine/index.js";
 
 const ACTION_CACHE_DIR = path.join(os.homedir(), ".xo", "cache", "actions");
 
 export interface LoadedAction {
   def: ActionDef;
   dir: string;
-  type: "composite" | "node";
+  type: "composite" | "node" | "prompt";
   mainPath?: string;
 }
 
@@ -62,6 +63,9 @@ async function loadLocalAction(uses: string, generatorDir: string): Promise<Load
   if (def.runs?.using === "node" && def.runs.main) {
     return { def, dir, type: "node", mainPath: path.resolve(dir, def.runs.main) };
   }
+  if (def.runs?.using === "prompt") {
+    return { def, dir, type: "prompt" };
+  }
   return { def, dir, type: "composite" };
 }
 
@@ -100,6 +104,10 @@ async function loadGitHubAction(uses: string): Promise<LoadedAction> {
         return { def, dir: cacheDir, type: "node", mainPath };
       }
 
+      if (def.runs?.using === "prompt") {
+        return { def, dir: cacheDir, type: "prompt" };
+      }
+
       return { def, dir: cacheDir, type: "composite" };
     } catch (err) {
       if (err instanceof Error && err.message.startsWith("Failed to fetch")) throw err;
@@ -120,6 +128,9 @@ async function loadCachedAction(dir: string): Promise<LoadedAction | null> {
   const def = parseYaml(await fs.readFile(yamlPath, "utf8")) as ActionDef;
   if (def.runs?.using === "node" && def.runs.main) {
     return { def, dir, type: "node", mainPath: path.resolve(dir, def.runs.main) };
+  }
+  if (def.runs?.using === "prompt") {
+    return { def, dir, type: "prompt" };
   }
   return { def, dir, type: "composite" };
 }
@@ -187,6 +198,51 @@ export async function runCompositeAction(
     for (const [key, decl] of Object.entries(def.outputs)) {
       outputs[key] = interpolate(decl.value, flat);
     }
+  }
+  return outputs;
+}
+
+export async function runPromptAction(
+  loaded: LoadedAction,
+  withArgs: Record<string, unknown>,
+  parentContext: RunContext,
+): Promise<Record<string, unknown>> {
+  const { def } = loaded;
+  const flatParent: Record<string, unknown> = {
+    inputs: parentContext.inputs,
+    config: parentContext.config,
+    steps: parentContext.steps,
+    env: parentContext.env,
+    ...parentContext.inputs,
+  };
+
+  // withArgs act as pre-filled overrides (can reference parent context)
+  const prefilled: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(withArgs)) {
+    prefilled[key] = typeof val === "string" ? interpolate(val, flatParent) : val;
+  }
+
+  if (parentContext.dryRun) {
+    console.log(`  [dry-run] prompt-action: ${def.name ?? "unnamed"}`);
+    const dryOutputs: Record<string, unknown> = {};
+    for (const key of Object.keys(def.inputs ?? {})) dryOutputs[key] = prefilled[key] ?? "";
+    return dryOutputs;
+  }
+
+  const answers = await collectInputs(def.inputs ?? {}, prefilled);
+
+  // Resolve declared outputs; if none declared, expose all answers directly
+  if (!def.outputs) return answers;
+
+  const outputs: Record<string, unknown> = {};
+  const flat: Record<string, unknown> = {
+    inputs: answers,
+    config: parentContext.config,
+    steps: parentContext.steps,
+    env: parentContext.env,
+  };
+  for (const [key, decl] of Object.entries(def.outputs)) {
+    outputs[key] = interpolate(decl.value, flat);
   }
   return outputs;
 }

@@ -21,7 +21,7 @@ import {
   isPkgInstalled,
   readJsonAtPath,
 } from "../signal-scanner/index.js";
-import { loadAction, runCompositeAction, runScriptAction } from "../action-runner/index.js";
+import { loadAction, runCompositeAction, runScriptAction, runPromptAction } from "../action-runner/index.js";
 
 type WithArgs = Record<string, unknown>;
 
@@ -271,6 +271,9 @@ export async function runStep(
       const loaded = await loadAction(step.uses, context.generatorDir);
       if (loaded.type === "composite") {
         return runCompositeAction(loaded, step.with ?? {}, context, runStep);
+      }
+      if (loaded.type === "prompt") {
+        return runPromptAction(loaded, step.with ?? {}, context);
       }
       return runScriptAction(loaded, step.with ?? {}, context);
     }
