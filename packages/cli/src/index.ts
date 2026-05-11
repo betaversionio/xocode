@@ -390,6 +390,63 @@ program
     console.log();
   });
 
+// ─── xo cache ────────────────────────────────────────────────────────────────
+
+const cache = program.command("cache").description("Manage the local xo cache");
+
+cache
+  .command("clear [owner]")
+  .description("Clear cached GitHub workflows. Optionally scope to a specific owner (e.g. betaversionio).")
+  .action(async (owner?: string) => {
+    const cacheDir = owner
+      ? path.join(os.homedir(), ".xo", "cache", "github", owner)
+      : path.join(os.homedir(), ".xo", "cache", "github");
+
+    if (!(await fs.pathExists(cacheDir))) {
+      console.log(chalk.dim("Cache is already empty."));
+      return;
+    }
+
+    await fs.remove(cacheDir);
+    const label = owner ? chalk.cyan(`@github/${owner}`) : "all GitHub workflows";
+    console.log(chalk.green(`✔ Cleared cache for ${label}`));
+  });
+
+cache
+  .command("list")
+  .description("Show what is currently cached.")
+  .action(async () => {
+    const cacheDir = path.join(os.homedir(), ".xo", "cache", "github");
+    if (!(await fs.pathExists(cacheDir))) {
+      console.log(chalk.dim("Cache is empty."));
+      return;
+    }
+
+    const owners = await fs.readdir(cacheDir);
+    if (owners.length === 0) {
+      console.log(chalk.dim("Cache is empty."));
+      return;
+    }
+
+    console.log(chalk.bold("\nCached GitHub workflows:\n"));
+    for (const owner of owners) {
+      const ownerDir = path.join(cacheDir, owner);
+      const repos = await fs.readdir(ownerDir).catch(() => [] as string[]);
+      for (const repo of repos) {
+        const repoDir = path.join(ownerDir, repo);
+        const refs = await fs.readdir(repoDir).catch(() => [] as string[]);
+        for (const ref of refs) {
+          const rawbasePath = path.join(repoDir, ref, ".rawbase");
+          const base = (await fs.pathExists(rawbasePath))
+            ? (await fs.readFile(rawbasePath, "utf8")).trim()
+            : `github.com/${owner}/${repo}@${ref}`;
+          console.log(`  ${chalk.cyan(`@github/${owner}/${repo}`)}  ${chalk.dim(base)}`);
+        }
+      }
+    }
+    console.log();
+  });
+
 // ─── xo self-update ──────────────────────────────────────────────────────────
 
 program
