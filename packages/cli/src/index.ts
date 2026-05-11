@@ -32,7 +32,9 @@ declare const __PKG_VERSION__: string;
 program
   .name("xo")
   .description("Local workflow engine for developers — compose actions into workflows")
-  .version(__PKG_VERSION__);
+  .version(__PKG_VERSION__)
+  .showHelpAfterError("(add --help for additional information)")
+  .showSuggestionAfterError(true);
 
 function parseInputFlags(flags: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -522,7 +524,7 @@ config
     const current = await readGlobalConfig();
     console.log(chalk.bold("\nxo global config\n"));
     for (const [key, meta] of Object.entries(CONFIG_META)) {
-      const value = (current as Record<string, unknown>)[key];
+      const value = (current as unknown as Record<string, unknown>)[key];
       const valueStr = value === undefined ? chalk.dim("(not set)") : chalk.white(String(value));
       const defaultStr = meta.default ? chalk.dim(` default: ${meta.default}`) : "";
       console.log(`  ${chalk.cyan(key.padEnd(16))} ${valueStr}${defaultStr}`);

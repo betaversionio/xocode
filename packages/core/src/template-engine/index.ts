@@ -1,6 +1,7 @@
 import Handlebars from "handlebars";
 
 Handlebars.registerHelper("eq", (a: unknown, b: unknown) => a === b);
+Handlebars.registerHelper("includes", (arr: unknown, val: unknown) => Array.isArray(arr) && arr.includes(val));
 Handlebars.registerHelper("ne", (a: unknown, b: unknown) => a !== b);
 Handlebars.registerHelper("or", (...args: unknown[]) => args.slice(0, -1).some(Boolean));
 Handlebars.registerHelper("and", (...args: unknown[]) => args.slice(0, -1).every(Boolean));

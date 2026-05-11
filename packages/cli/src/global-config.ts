@@ -44,7 +44,7 @@ export async function readGlobalConfig(): Promise<XoGlobalConfig> {
 export async function getConfigValue(key: string): Promise<unknown> {
   if (!(key in CONFIG_META)) throw new Error(unknownKeyMsg(key));
   const config = await readGlobalConfig();
-  return (config as Record<string, unknown>)[key];
+  return (config as unknown as Record<string, unknown>)[key];
 }
 
 export async function setConfigValue(key: string, raw: string): Promise<void> {

@@ -10,16 +10,23 @@ export async function collectInputs(
   inputs: Record<string, WorkflowInput>,
   prefilled: Record<string, unknown> = {},
 ): Promise<Record<string, unknown>> {
-  // Apply defaults before prompting so defaulted inputs don't get prompted
+  // For text inputs, apply defaults upfront so they don't get prompted.
+  // For select/multiselect/confirm, always prompt — the default just pre-selects an option.
+  const interactiveTypes = new Set(["select", "multiselect", "confirm"]);
   const withDefaults: Record<string, unknown> = { ...prefilled };
   for (const [name, input] of Object.entries(inputs)) {
-    if (withDefaults[name] === undefined && input.default !== undefined) {
+    if (
+      withDefaults[name] === undefined &&
+      input.default !== undefined &&
+      !interactiveTypes.has(input.type ?? "text")
+    ) {
       withDefaults[name] = input.default;
     }
   }
 
   const toPrompt = Object.entries(inputs).filter(
-    ([name]) => withDefaults[name] === undefined,
+    ([name, input]) =>
+      withDefaults[name] === undefined || interactiveTypes.has(input.type ?? "text"),
   );
   if (toPrompt.length === 0) return withDefaults;
 
@@ -65,9 +72,16 @@ export async function collectInputs(
       ...base,
       type: "text" as const,
       initial: input.default !== undefined ? String(input.default) : undefined,
-      validate: input.required
-        ? (v: string) => (v.trim() !== "" ? true : `${name} is required`)
-        : undefined,
+      validate: (v: string) => {
+        if (input.required && v.trim() === "") return `${name} is required`;
+        if (input.pattern && !new RegExp(input.pattern).test(v))
+          return `${name} must match pattern: ${input.pattern}`;
+        if (input.min !== undefined && v.length < input.min)
+          return `${name} must be at least ${input.min} characters`;
+        if (input.max !== undefined && v.length > input.max)
+          return `${name} must be at most ${input.max} characters`;
+        return true;
+      },
     };
   });
 

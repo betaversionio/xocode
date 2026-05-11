@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "fs-extra";
+import prompts from "prompts";
 import { Project } from "ts-morph";
 import type { Step, RunContext } from "../types.js";
 import { evaluate } from "../utils/expression.js";
@@ -206,6 +207,32 @@ async function runBuiltinAction(
     return {};
   }
 
+  // ── Prompt / message actions ──────────────────────────────────────────────
+
+  if (actionName === "xo/prompt") {
+    const type = str(w.type) || "info";
+    const message = str(w.message);
+
+    if (type === "confirm") {
+      if (dryRun) { console.log(`  [dry-run] prompt(confirm): ${message}`); return { confirmed: true }; }
+      const { confirmed } = await prompts({
+        type: "confirm",
+        name: "confirmed",
+        message,
+        initial: w.default !== false,
+      }, { onCancel: () => process.exit(0) });
+      return { confirmed: Boolean(confirmed) };
+    }
+
+    // info / warn / success — just print
+    const prefix =
+      type === "warn" ? "  ⚠ " :
+      type === "success" ? "  ✔ " :
+      "  ℹ ";
+    console.log(`${prefix}${message}`);
+    return {};
+  }
+
   // ── Execution actions ─────────────────────────────────────────────────────
 
   if (actionName === "xo/run") {
@@ -220,7 +247,7 @@ async function runBuiltinAction(
     return {};
   }
 
-  throw new Error(`Unknown built-in action: "${actionName}". Available: xo/detect-pm, xo/detect-lang, xo/file-exists, xo/pkg-installed, xo/read-json, xo/copy, xo/template, xo/append, xo/inject, xo/replace, xo/json, xo/env, xo/ast-import, xo/install-pkg, xo/run, xo/script`);
+  throw new Error(`Unknown built-in action: "${actionName}". Available: xo/detect-pm, xo/detect-lang, xo/file-exists, xo/pkg-installed, xo/read-json, xo/copy, xo/template, xo/append, xo/inject, xo/replace, xo/json, xo/env, xo/ast-import, xo/install-pkg, xo/run, xo/script, xo/prompt`);
 }
 
 export async function runStep(

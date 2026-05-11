@@ -9,6 +9,9 @@ export interface WorkflowInput {
   type?: "text" | "select" | "confirm" | "multiselect";
   choices?: WorkflowChoice[];
   default?: string | boolean;
+  pattern?: string;   // regex to validate text input
+  min?: number;       // min length (text) or min value (numeric text)
+  max?: number;       // max length (text) or max value (numeric text)
 }
 
 export interface DetectRule {
@@ -28,6 +31,7 @@ export interface Step {
   with?: Record<string, unknown>;
   run?: string;
   if?: string;
+  parallel?: boolean;  // run this step concurrently with adjacent parallel steps
 }
 
 export interface Job {
