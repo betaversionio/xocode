@@ -149,6 +149,31 @@ xo registry remove payment/stripe
 
 ---
 
+## Cache
+
+xo caches generator files fetched from GitHub in `~/.xo/cache/`. The cache commands let you inspect and clear these cached files.
+
+### `xo cache list`
+
+Lists all cached generators.
+
+```bash
+xo cache list
+```
+
+### `xo cache clear`
+
+Clears the entire GitHub cache, or only the cache for a specific GitHub owner.
+
+```bash
+xo cache clear              # clear all cached generators
+xo cache clear my-org       # clear cache only for the given GitHub owner
+```
+
+> **Note:** Clearing the cache forces the next run to re-fetch generator files from GitHub. Generators pinned to a tag (`@v1.2.0`) are considered immutable and will be restored from GitHub on the next use.
+
+---
+
 ## Flags
 
 ### `--input` / `-i`

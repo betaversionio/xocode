@@ -355,14 +355,17 @@ inputs:
   secretKey:
     prompt: "Stripe secret key?"
     required: true
+    pattern: "^sk_(test|live)_[A-Za-z0-9]+$"   # optional regex validation
 
 jobs:
   detect:
     steps:
       - uses: xo/detect-pm
         id: pm
+        parallel: true
       - uses: xo/pkg-installed
         id: hasNext
+        parallel: true
         with:
           pkg: next
 
@@ -423,6 +426,36 @@ detects:
 Multiple rules are AND-ed. Supported operators: `exists`, `equals`, `matches`.
 
 For richer detection inside the workflow (detecting framework, language, specific config values), use detection actions in a `detect` job — see [Action Reference](actions.md#detection-actions).
+
+---
+
+## Input Validation
+
+Workflow inputs support `pattern`, `min`, and `max` fields for lightweight validation before any steps run.
+
+```yaml
+inputs:
+  projectName:
+    prompt: "Project name?"
+    type: text
+    required: true
+    pattern: "^[a-z][a-z0-9_]*$"   # regex — must start with a lowercase letter
+    min: 2                            # minimum character length
+    max: 50                           # maximum character length
+
+  version:
+    prompt: "Version?"
+    type: text
+    pattern: "^\\d+\\.\\d+\\.\\d+$"  # semver — e.g. 1.0.0
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `pattern` | `string` | ECMAScript regex the value must satisfy |
+| `min` | `number` | Minimum character length (text inputs) |
+| `max` | `number` | Maximum character length (text inputs) |
+
+Validation runs after the user types each value. A clear error message is shown and the prompt is re-displayed on failure.
 
 ---
 

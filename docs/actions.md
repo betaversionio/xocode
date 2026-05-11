@@ -34,6 +34,43 @@ Assign `id:` to any step to capture its outputs and reference them in later step
 
 ---
 
+## Step Execution
+
+### Step outputs
+
+Any step with `id:` exposes its results as `{{ steps.<id>.outputs.<key> }}` in subsequent steps.
+
+```yaml
+- uses: xo/detect-pm
+  id: pm
+
+- run: "{{ steps.pm.outputs.value }} install"
+```
+
+Detection actions document their output keys in their reference sections below. Script and composite actions return whatever keys their implementation declares.
+
+### Parallel steps
+
+Add `parallel: true` to steps that can safely run concurrently. Consecutive `parallel: true` steps are grouped into a batch and executed via `Promise.all`. The batch ends — and subsequent steps wait — as soon as a non-parallel step is encountered.
+
+```yaml
+steps:
+  - uses: xo/detect-pm
+    id: pm
+    parallel: true
+  - uses: xo/detect-lang
+    id: lang
+    parallel: true
+  - uses: xo/file-exists        # waits for both steps above to finish first
+    id: hasPrisma
+    with:
+      path: prisma/schema.prisma
+```
+
+This is particularly useful in `detect` jobs where several independent checks can be parallelised to reduce total workflow time.
+
+---
+
 ## Custom Actions
 
 Custom actions let you package reusable logic — either as YAML compositions of built-ins or as Node.js scripts — and reference them from any workflow in that generator repo, or publish them to GitHub for cross-generator reuse.
@@ -308,13 +345,33 @@ Reads a value from a JSON file at a dot-notation path.
 
 ### `xo/copy`
 
-Copies a file from the generator's `templates/` directory to the project. Skips if destination already exists and is identical.
+Copies a file or directory from the generator's `templates/` directory (or any path relative to the generator) to the project. Skips if destination already exists and is identical.
+
+**Single file**
 
 ```yaml
 - uses: xo/copy
   with:
     from: templates/button.tsx
     to: src/components/button.tsx
+```
+
+**Directory** — copies the entire directory recursively. For remote generators, the GitHub Contents API enumerates all files; for local generators, `fs.copy` handles it natively.
+
+```yaml
+- uses: xo/copy
+  with:
+    from: templates/components/
+    to: src/components/
+```
+
+**Glob pattern** — copies all files matching the pattern. Supports `*`, `**`, and `?`. When `from` contains no glob characters and points to a directory, the whole directory is copied recursively.
+
+```yaml
+- uses: xo/copy
+  with:
+    from: "lib/**/*.dart"   # copy all Dart files matching the glob
+    to: lib/                # destination directory
 ```
 
 ---
@@ -425,6 +482,54 @@ Adds variables to a `.env` file. Skips any key that already exists.
 
 ---
 
+## Prompt Actions
+
+### `xo/prompt`
+
+Displays a message or requests confirmation from the user mid-workflow. Useful for status messages, warnings before destructive steps, or gating heavy operations behind a confirmation.
+
+**Info message**
+
+```yaml
+- uses: xo/prompt
+  with:
+    type: info
+    message: "Setting up your Flutter project..."
+```
+
+**Warning**
+
+```yaml
+- uses: xo/prompt
+  with:
+    type: warn
+    message: "This will overwrite your existing pubspec.yaml"
+```
+
+**Confirmation** — outputs `{ confirmed: boolean }`. Use `default` to set the pre-selected answer.
+
+```yaml
+- id: proceed
+  uses: xo/prompt
+  with:
+    type: confirm
+    message: "Install heavy dependencies? (~200MB)"
+    default: true
+
+- if: "steps.proceed.outputs.confirmed == true"
+  uses: xo/install-pkg
+  with:
+    pkg: some-heavy-pkg
+```
+
+| `type` | Description | Outputs |
+|---|---|---|
+| `info` | Prints an informational message | — |
+| `warn` | Prints a warning message | — |
+| `confirm` | Asks a yes/no question | `{ confirmed: boolean }` |
+
+---
+
 ## Code Actions
 
 ### `xo/ast-import`
@@ -502,4 +607,5 @@ Runs a shell script file from the generator's `scripts/` directory.
 | `xo/ast-import` | No-ops if import already present |
 | `xo/install-pkg` | Skips if package already in `dependencies` or `devDependencies` |
 | `xo/run` / `run:` | Caller's responsibility — use `if` conditions to guard |
+| `xo/prompt` | Side-effect free for `info`/`warn`; `confirm` is interactive |
 | Detection actions | Read-only — always safe to re-run |

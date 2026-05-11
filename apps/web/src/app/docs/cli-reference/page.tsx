@@ -17,54 +17,61 @@ export default function CliReferencePage() {
         </p>
       </div>
 
+      {/* Commands */}
       {[
         {
           cmd: "xo create",
           tagline: "Scaffold a new project",
-          usage: "xo create <template> [options]",
-          desc: "Downloads and runs a project-type generator to scaffold a new project from scratch. The template is resolved by GitHub path (owner/repo) or local path (./path/to/generator).",
+          usage: "xo create <generator> [options]",
+          desc: "Runs the generator's create workflow to scaffold a new project from scratch. Generators are resolved by direct GitHub reference (@github/owner/repo), registered name, or local path.",
           options: [
             ["--dry-run", "Preview all actions without writing any files"],
-            ["--dir <path>", "Target directory (default: current working directory)"],
+            ["-i <key>=<val>", "Pre-fill an input, skipping the interactive prompt for that value. Repeatable."],
+            ["--local", "Run a generator from a local path without linking"],
           ],
           examples: [
-            "xo create acme/nextjs-starter",
-            "xo create acme/nestjs-api --dir ./api",
-            "xo create ./local-template --dry-run",
-            "xo create acme/generators/monorepo-base",
+            "xo create @github/my-org/xo-next-app",
+            "xo create flutter-app",
+            "xo create @github/betaversionio/xo-flutter",
+            "xo create ./my-template --local --dry-run",
           ],
           note: null,
         },
         {
           cmd: "xo add",
           tagline: "Add a feature to an existing project",
-          usage: "xo add <feature> [options]",
-          desc: "Applies a feature-type generator to the current project. Validates compatibility (detects, requires, conflicts) before running any actions.",
+          usage: "xo add <generator> [options]",
+          desc: "Applies a generator to the current project. Validates compatibility (detects, requires, conflicts) before running any steps.",
           options: [
             ["--dry-run", "Preview all actions without writing any files"],
+            ["-i <key>=<val>", "Pre-fill an input. Repeatable."],
+            ["--local", "Run from a local path without linking"],
           ],
           examples: [
-            "xo add acme/shadcn-setup",
-            "xo add acme/auth-jwt",
-            "xo add acme/prisma --dry-run",
+            "xo add @github/my-org/xo-stripe",
+            "xo add @github/my-org/xo-ui/button",
+            "xo add @github/my-org/xo-ui/button@v1.2.0",
+            "xo add payment/stripe --dry-run",
+            "xo add ui/button -i componentName=Button -i variant=primary",
           ],
           note: {
             variant: "info" as const,
             title: "Validation order",
-            body: "Before running, xo checks detects rules (signals compatible?), then requires (prerequisites applied?), then conflicts (no conflicting generators?). All three must pass.",
+            body: "Before running, xo checks detects rules (project compatible?), then requires (prerequisites applied?), then conflicts (no clashing generators?). All three must pass.",
           },
         },
         {
           cmd: "xo run",
-          tagline: "Run any generator by name",
-          usage: "xo run <name> [options]",
-          desc: "Runs a generator regardless of its declared type. Useful for one-off generators or task runners.",
+          tagline: "Run a generator's run workflow",
+          usage: "xo run <generator> [options]",
+          desc: "Triggers the generator's run workflow. Useful for task runners or one-off generators.",
           options: [
-            ["--dry-run", "Preview all actions without writing any files"],
+            ["--dry-run", "Preview without writing files"],
+            ["-i <key>=<val>", "Pre-fill an input"],
           ],
           examples: [
-            "xo run acme/scaffold-module",
-            "xo run ./internal/codegen",
+            "xo run db:migrate",
+            "xo run @github/my-org/xo-codegen",
           ],
           note: null,
         },
@@ -72,20 +79,20 @@ export default function CliReferencePage() {
           cmd: "xo undo",
           tagline: "Revert the last operation",
           usage: "xo undo",
-          desc: "Reverts the most recent xo create, xo add, or xo run operation. Files that were created are deleted; files that were modified are restored.",
+          desc: "Reverts the most recent xo add or xo create operation. Files that were created are deleted; files that were modified are restored from their before-snapshot.",
           options: [],
           examples: ["xo undo"],
           note: {
             variant: "warning" as const,
             title: "File changes only",
-            body: "xo undo restores file content but does not reverse shell commands (like pnpm install). Reverse those manually if needed.",
+            body: "xo undo restores file content but does not reverse shell commands (like flutter pub get). Reverse those manually if needed.",
           },
         },
         {
           cmd: "xo history",
           tagline: "List applied generators",
           usage: "xo history",
-          desc: "Lists every generator applied in the current project in chronological order, with operation ID, generator name, and timestamp.",
+          desc: "Lists every generator applied in the current project in chronological order, with operation ID, generator name, trigger, and timestamp.",
           options: [],
           examples: ["xo history"],
           note: null,
@@ -124,24 +131,136 @@ export default function CliReferencePage() {
           )}
 
           <TerminalBlock commands={examples} />
-          {note && (
-            <Callout variant={note.variant} title={note.title}>{note.body}</Callout>
-          )}
+          {note && <Callout variant={note.variant} title={note.title}>{note.body}</Callout>}
         </section>
       ))}
+
+      {/* Local development */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Local development</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          These commands are for generator authors building and testing a generator locally.
+        </p>
+
+        <div className="space-y-6">
+          {[
+            {
+              cmd: "xo link [name]",
+              desc: "Register the current directory as a named generator. xo reads the name field from workflow.yaml automatically — pass a name only to override. Once linked, xo add <name> from any project resolves to your local directory. Changes to workflow.yaml or templates are picked up immediately.",
+              examples: ["cd ~/projects/xo-stripe", "xo link", "xo link payment/stripe"],
+            },
+            {
+              cmd: "xo unlink [name]",
+              desc: "Remove the link for the current directory. Run inside the generator repo.",
+              examples: ["cd ~/projects/xo-stripe", "xo unlink"],
+            },
+            {
+              cmd: "xo links",
+              desc: "List all locally linked generators with their names, paths, and link dates.",
+              examples: ["xo links"],
+            },
+          ].map(({ cmd, desc, examples }) => (
+            <div key={cmd} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="rounded-md px-3 py-1 font-mono text-sm font-semibold text-primary">
+                  {cmd}
+                </Badge>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+              <TerminalBlock commands={examples} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Registry */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Registry</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Register GitHub generators under short names so users don't need the <code>@github/</code>{" "}
+          prefix every time.
+        </p>
+
+        <div className="space-y-6">
+          {[
+            {
+              cmd: "xo registry add <name>",
+              desc: "Register a generator from a GitHub URL. Use --path for a subdirectory in a multi-generator repo.",
+              examples: [
+                "xo registry add payment/stripe --url https://github.com/my-org/xo-stripe",
+                "xo registry add ui/button --url https://github.com/my-org/xo-ui --path button",
+              ],
+            },
+            {
+              cmd: "xo registry list",
+              desc: "List all registered generators.",
+              examples: ["xo registry list"],
+            },
+            {
+              cmd: "xo registry remove <name>",
+              desc: "Remove a generator from the local registry.",
+              examples: ["xo registry remove payment/stripe"],
+            },
+          ].map(({ cmd, desc, examples }) => (
+            <div key={cmd} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="rounded-md px-3 py-1 font-mono text-sm font-semibold text-primary">
+                  {cmd}
+                </Badge>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+              <TerminalBlock commands={examples} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Cache */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Cache</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          xo caches generator files fetched from GitHub in <code>~/.xo/cache/</code>. Branch refs
+          are always re-fetched on each run. Tag refs are cached forever (immutable).
+        </p>
+
+        <div className="space-y-6">
+          {[
+            {
+              cmd: "xo cache list",
+              desc: "List all cached generators with their owner, repo, ref, and cache path.",
+              examples: ["xo cache list"],
+            },
+            {
+              cmd: "xo cache clear [owner]",
+              desc: "Clear the entire GitHub cache, or only the cache for a specific GitHub owner.",
+              examples: ["xo cache clear", "xo cache clear my-org"],
+            },
+          ].map(({ cmd, desc, examples }) => (
+            <div key={cmd} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="rounded-md px-3 py-1 font-mono text-sm font-semibold text-primary">
+                  {cmd}
+                </Badge>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
+              <TerminalBlock commands={examples} />
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Resolution */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Generator resolution</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          xo looks for <code>generator.yaml</code> (or <code>generator.yml</code> / <code>generator.json</code>) in this order:
+          xo resolves a generator name in this order:
         </p>
         <div className="space-y-3">
           {[
-            { step: "1", title: "Local path", desc: "Name starts with ./ or / → reads directly from that directory." },
-            { step: "2", title: "Project-local", desc: ".xo/generators/<name>/generator.yaml in the current project." },
-            { step: "3", title: "Global cache", desc: "~/.xo/generators/<name>/generator.yaml." },
-            { step: "4", title: "GitHub fetch", desc: "Fetches from https://raw.githubusercontent.com/<owner>/<repo>/main/generator.yaml and caches globally." },
+            { step: "1", title: "Local path", desc: "Name starts with ./ or / → reads directly from that path. Requires --local flag." },
+            { step: "2", title: "Linked generators", desc: "Checks ~/.xo/links.json for a match — set by xo link inside a generator repo." },
+            { step: "3", title: "Registry", desc: "Checks ~/.xo/registry.json for a registered URL — set by xo registry add." },
+            { step: "4", title: "@github/ reference", desc: "Name starts with @github/ → fetches workflow.yaml from GitHub and caches it in ~/.xo/cache/." },
           ].map((item) => (
             <div key={item.step} className="flex gap-4 rounded-lg border border-border bg-card p-4">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
@@ -154,10 +273,9 @@ export default function CliReferencePage() {
             </div>
           ))}
         </div>
-        <Callout variant="tip" title="Subpath generators">
-          The name <code>owner/repo/subpath</code> maps to{" "}
-          <code>…/owner/repo/main/subpath/generator.yaml</code> — letting you host multiple
-          generators in a single GitHub repo.
+        <Callout variant="tip">
+          Use <code>@github/owner/repo/subpath</code> to reference a generator in a subdirectory
+          of a repo — e.g. <code>@github/my-org/xo-ui/button</code>.
         </Callout>
       </section>
 
@@ -171,10 +289,11 @@ export default function CliReferencePage() {
               Records the applied template and features. Used by requires/conflicts validation on subsequent runs. Commit this file.
             </p>
             <CodeBlock
-              code={`template: acme/nextjs-starter
+              code={`template: flutter-app
+packageManager: pnpm
 features:
-  - acme/shadcn-setup
-  - acme/auth-jwt`}
+  - payment/stripe
+  - auth/jwt`}
               lang="yaml"
             />
           </div>
@@ -189,11 +308,11 @@ features:
     {
       "id": "a1b2c3d4-...",
       "timestamp": "2025-05-04T10:32:00.000Z",
-      "generator": "acme/nextjs-starter",
+      "generator": "@github/betaversionio/xo-flutter",
       "type": "create",
       "files": [
-        { "filePath": "src/app/page.tsx", "action": "created" },
-        { "filePath": "package.json",     "action": "modified", "before": "..." }
+        { "filePath": "lib/main.dart", "action": "created" },
+        { "filePath": "pubspec.yaml",  "action": "modified", "before": "..." }
       ]
     }
   ]
