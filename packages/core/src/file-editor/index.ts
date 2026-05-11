@@ -1,7 +1,33 @@
 import path from "node:path";
+import https from "node:https";
 import fs from "fs-extra";
 import { renderTemplate, renderFilename } from "../template-engine/index.js";
 import { interpolate } from "../utils/interpolate.js";
+
+async function fetchText(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        return fetchText(res.headers.location!).then(resolve, reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP ${res.statusCode} fetching ${url}`));
+      }
+      let data = "";
+      res.on("data", (c) => (data += c));
+      res.on("end", () => resolve(data));
+    }).on("error", reject);
+  });
+}
+
+async function readSource(generatorDir: string, source: string): Promise<string> {
+  const rawbasePath = path.join(generatorDir, ".rawbase");
+  if (await fs.pathExists(rawbasePath)) {
+    const base = (await fs.readFile(rawbasePath, "utf8")).trim();
+    return fetchText(`${base}/${source}`);
+  }
+  return fs.readFile(path.join(generatorDir, source), "utf8");
+}
 
 export interface CopyAction {
   source: string;
@@ -55,10 +81,10 @@ export async function copyFile(
   action: CopyAction,
   ctx: Record<string, unknown>,
 ): Promise<void> {
-  const src = path.join(generatorDir, action.source);
+  const content = await readSource(generatorDir, action.source);
   const dest = path.join(cwd, resolveTarget(action.target, ctx));
   await fs.ensureDir(path.dirname(dest));
-  await fs.copy(src, dest, { overwrite: true });
+  await fs.writeFile(dest, content, "utf8");
 }
 
 export async function templateFile(
@@ -67,8 +93,7 @@ export async function templateFile(
   action: TemplateAction,
   ctx: Record<string, unknown>,
 ): Promise<void> {
-  const src = path.join(generatorDir, action.source);
-  const raw = await fs.readFile(src, "utf8");
+  const raw = await readSource(generatorDir, action.source);
   const rendered = renderTemplate(raw, ctx);
   const dest = path.join(cwd, resolveTarget(action.target, ctx));
   await fs.ensureDir(path.dirname(dest));
