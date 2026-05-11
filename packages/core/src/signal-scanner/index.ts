@@ -1,93 +1,70 @@
+// Detection utilities used internally by xo/* detection actions.
+// Not part of the public API — detection is done via explicit workflow steps.
+
 import path from "node:path";
 import fs from "fs-extra";
-import type { Signal } from "../types.js";
 
-const COMMON_FILES = [
-  "package.json",
-  "tsconfig.json",
-  "tsconfig.base.json",
-  "pnpm-workspace.yaml",
-  ".eslintrc.js",
-  ".eslintrc.json",
-  ".eslintrc.cjs",
-  "eslint.config.js",
-  "eslint.config.mjs",
-  "prettier.config.js",
-  ".prettierrc",
-  "tailwind.config.ts",
-  "tailwind.config.js",
-  "next.config.ts",
-  "next.config.js",
-  "vite.config.ts",
-  "vite.config.js",
-  "vitest.config.ts",
-  "jest.config.ts",
-  "jest.config.js",
-  "turbo.json",
-  "Dockerfile",
-  ".env",
-  ".env.example",
-  "docker-compose.yml",
-  "docker-compose.yaml",
-  "prisma/schema.prisma",
-  "prisma.config.ts",
-  "drizzle.config.ts",
-];
+export async function detectPackageManager(cwd: string): Promise<string> {
+  if (await fs.pathExists(path.join(cwd, "pnpm-lock.yaml"))) return "pnpm";
+  if (
+    (await fs.pathExists(path.join(cwd, "bun.lockb"))) ||
+    (await fs.pathExists(path.join(cwd, "bun.lock")))
+  )
+    return "bun";
+  if (await fs.pathExists(path.join(cwd, "yarn.lock"))) return "yarn";
+  return "npm";
+}
 
-export async function scanSignals(cwd: string): Promise<Signal> {
-  const signals: Signal = {};
-
-  for (const file of COMMON_FILES) {
-    signals[`file:${file}`] = await fs.pathExists(path.join(cwd, file));
-  }
-
+export async function detectLanguage(cwd: string): Promise<string> {
+  if (await fs.pathExists(path.join(cwd, "tsconfig.json"))) return "typescript";
   const pkgPath = path.join(cwd, "package.json");
   if (await fs.pathExists(pkgPath)) {
     const pkg = await fs.readJson(pkgPath).catch(() => ({}));
-    const allDeps: Record<string, string> = {
-      ...pkg.dependencies,
-      ...pkg.devDependencies,
-      ...pkg.peerDependencies,
-    };
-    for (const dep of Object.keys(allDeps)) {
-      signals[`pkg:${dep}`] = true;
-    }
-    if (pkg.scripts) {
-      for (const [scriptName] of Object.entries(pkg.scripts)) {
-        signals[`script:${scriptName}`] = true;
-      }
-    }
-    signals.isMonorepo = Boolean(pkg.workspaces || (await fs.pathExists(path.join(cwd, "pnpm-workspace.yaml"))));
-
-    // Detect framework from deps
-    if (allDeps["next"]) signals.framework = "nextjs";
-    else if (allDeps["@nuxt/core"] || allDeps["nuxt"]) signals.framework = "nuxt";
-    else if (allDeps["@sveltejs/kit"]) signals.framework = "sveltekit";
-    else if (allDeps["react"]) signals.framework = "react";
-    else if (allDeps["vue"]) signals.framework = "vue";
-    else if (allDeps["svelte"]) signals.framework = "svelte";
-    else if (allDeps["@nestjs/core"]) signals.framework = "nestjs";
-    else if (allDeps["express"]) signals.framework = "express";
-    else if (allDeps["fastify"]) signals.framework = "fastify";
-
-    // Detect language
-    if (allDeps["typescript"] || allDeps["ts-node"] || await fs.pathExists(path.join(cwd, "tsconfig.json"))) {
-      signals.language = "typescript";
-    } else {
-      signals.language = "javascript";
-    }
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    if (allDeps["typescript"] || allDeps["ts-node"]) return "typescript";
   }
+  if (await fs.pathExists(path.join(cwd, "pubspec.yaml"))) return "dart";
+  if (await fs.pathExists(path.join(cwd, "go.mod"))) return "go";
+  if (await fs.pathExists(path.join(cwd, "Cargo.toml"))) return "rust";
+  if (
+    (await fs.pathExists(path.join(cwd, "requirements.txt"))) ||
+    (await fs.pathExists(path.join(cwd, "pyproject.toml")))
+  )
+    return "python";
+  return "javascript";
+}
 
-  // Detect package manager
-  if (await fs.pathExists(path.join(cwd, "pnpm-lock.yaml"))) {
-    signals.packageManager = "pnpm";
-  } else if (await fs.pathExists(path.join(cwd, "bun.lockb")) || await fs.pathExists(path.join(cwd, "bun.lock"))) {
-    signals.packageManager = "bun";
-  } else if (await fs.pathExists(path.join(cwd, "yarn.lock"))) {
-    signals.packageManager = "yarn";
-  } else {
-    signals.packageManager = "npm";
+export async function isPkgInstalled(
+  cwd: string,
+  pkg: string,
+): Promise<{ installed: boolean; version?: string }> {
+  const pkgPath = path.join(cwd, "package.json");
+  if (!(await fs.pathExists(pkgPath))) return { installed: false };
+  const json = await fs.readJson(pkgPath).catch(() => ({}));
+  const allDeps = {
+    ...json.dependencies,
+    ...json.devDependencies,
+    ...json.peerDependencies,
+  };
+  const version = allDeps[pkg] as string | undefined;
+  return { installed: Boolean(version), version };
+}
+
+export async function readJsonAtPath(
+  cwd: string,
+  file: string,
+  jsonPath: string,
+): Promise<unknown> {
+  const absPath = path.join(cwd, file);
+  if (!(await fs.pathExists(absPath))) return undefined;
+  const json = await fs.readJson(absPath).catch(() => undefined);
+  if (json === undefined) return undefined;
+  const parts = jsonPath.split(".");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cur: any = json;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = cur[p];
   }
-
-  return signals;
+  return cur;
 }

@@ -13,11 +13,9 @@ const actions = [
       ["source", "string", "Yes", "Path relative to the generator directory"],
       ["target", "string", "Yes", "Destination path relative to project root"],
     ],
-    example: `{
-  "type": "copy",
-  "source": "assets/logo.svg",
-  "target": "public/logo.svg"
-}`,
+    example: `type: copy
+source: assets/logo.svg
+target: public/logo.svg`,
   },
   {
     type: "template",
@@ -26,11 +24,9 @@ const actions = [
       ["source", "string", "Yes", "Path to .hbs file, relative to generator directory"],
       ["target", "string", "Yes", "Destination path. Supports {{variable}} interpolation"],
     ],
-    example: `{
-  "type": "template",
-  "source": "templates/service.ts.hbs",
-  "target": "src/{{kebabCase name}}/{{kebabCase name}}.service.ts"
-}`,
+    example: `type: template
+source: templates/service.ts.hbs
+target: "src/{{kebabCase name}}/{{kebabCase name}}.service.ts"`,
     note: "Handlebars helpers (pascalCase, camelCase, kebabCase, snakeCase, capitalize) work in both template content and target paths.",
   },
   {
@@ -41,11 +37,9 @@ const actions = [
       ["content", "string", "Yes", "Content to append. Supports Handlebars rendering"],
       ["newline", "boolean", "No", "Prefix content with a newline (default: true)"],
     ],
-    example: `{
-  "type": "append",
-  "target": ".env.example",
-  "content": "DATABASE_URL=postgresql://localhost:5432/{{snakeCase name}}"
-}`,
+    example: `type: append
+target: .env.example
+content: "DATABASE_URL=postgresql://localhost:5432/{{snakeCase name}}"`,
   },
   {
     type: "inject",
@@ -56,12 +50,10 @@ const actions = [
       ["after", "string", "No*", "Insert after this marker string"],
       ["before", "string", "No*", "Insert before this marker string"],
     ],
-    example: `{
-  "type": "inject",
-  "target": "src/app.module.ts",
-  "after": "// GENERATORS",
-  "content": "import { {{pascalCase name}}Module } from './{{kebabCase name}}/{{kebabCase name}}.module';"
-}`,
+    example: `type: inject
+target: src/app.module.ts
+after: "// GENERATORS"
+content: "import { {{pascalCase name}}Module } from './{{kebabCase name}}/{{kebabCase name}}.module';"`,
     note: "Exactly one of after or before is required.",
   },
   {
@@ -73,13 +65,11 @@ const actions = [
       ["replace", "string", "Yes", "Replacement string. Supports Handlebars and $1/$2 capture groups"],
       ["flags", "string", "No", 'Regex flags (default: "g")'],
     ],
-    example: `{
-  "type": "replace",
-  "target": "README.md",
-  "search": "\\$\\{APP_NAME\\}",
-  "replace": "{{name}}",
-  "flags": "g"
-}`,
+    example: `type: replace
+target: README.md
+search: "\\$\\{APP_NAME\\}"
+replace: "{{name}}"
+flags: g`,
   },
   {
     type: "json",
@@ -89,20 +79,15 @@ const actions = [
       ["merge", "object", "Yes", "Object to merge into the file"],
       ["deep", "boolean", "No", "Use deep merge instead of shallow (default: false)"],
     ],
-    example: `{
-  "type": "json",
-  "target": "package.json",
-  "deep": true,
-  "merge": {
-    "scripts": {
-      "db:migrate": "prisma migrate dev",
-      "db:push": "prisma db push"
-    },
-    "dependencies": {
-      "@prisma/client": "^6.0.0"
-    }
-  }
-}`,
+    example: `type: json
+target: package.json
+deep: true
+merge:
+  scripts:
+    db:migrate: prisma migrate dev
+    db:push: prisma db push
+  dependencies:
+    "@prisma/client": ^6.0.0`,
     note: "With deep: false (default), top-level keys are replaced. With deep: true, nested objects are recursively merged.",
   },
   {
@@ -113,11 +98,9 @@ const actions = [
       ["value", "string", "Yes", "The value. Supports {{variable}} interpolation"],
       ["target", "string", "No", "Path to the env file (default: .env)"],
     ],
-    example: `{
-  "type": "env",
-  "key": "DATABASE_URL",
-  "value": "postgresql://localhost:5432/{{snakeCase name}}_dev"
-}`,
+    example: `type: env
+key: DATABASE_URL
+value: "postgresql://localhost:5432/{{snakeCase name}}_dev"`,
   },
   {
     type: "ast-add-import",
@@ -128,12 +111,12 @@ const actions = [
       ["import", "string | string[]", "Yes", "Named import(s) to add"],
       ["isDefault", "boolean", "No", "Add as default import instead of named"],
     ],
-    example: `{
-  "type": "ast-add-import",
-  "target": "src/app.module.ts",
-  "from": "@nestjs/config",
-  "import": ["ConfigModule", "ConfigService"]
-}`,
+    example: `type: ast-add-import
+target: src/app.module.ts
+from: "@nestjs/config"
+import:
+  - ConfigModule
+  - ConfigService`,
     note: "If the module is already imported, only the missing named imports are added — existing ones are untouched.",
   },
   {
@@ -143,10 +126,8 @@ const actions = [
       ["command", "string", "Yes", "The shell command to run. Supports {{variable}} interpolation"],
       ["cwd", "string", "No", "Subdirectory to run in, relative to project root"],
     ],
-    example: `{
-  "type": "command",
-  "command": "pnpm add {{dependencies}}"
-}`,
+    example: `type: command
+command: "pnpm add {{dependencies}}"`,
     note: "Runs with shell: true so shell syntax (&&, pipes) works. The generator fails if exit code is non-zero.",
   },
   {
@@ -156,10 +137,8 @@ const actions = [
       ["script", "string", "Yes", "Path to the script file, relative to generator directory"],
       ["cwd", "string", "No", "Subdirectory to run in, relative to project root"],
     ],
-    example: `{
-  "type": "script",
-  "script": "scripts/postinstall.sh"
-}`,
+    example: `type: script
+script: scripts/postinstall.sh`,
   },
   {
     type: "xo-call",
@@ -167,20 +146,16 @@ const actions = [
     fields: [
       ["generator", "string", "Yes", "The generator name to invoke (same resolution rules as xo add)"],
     ],
-    example: `{
-  "type": "xo-call",
-  "generator": "acme/eslint-setup"
-}`,
+    example: `type: xo-call
+generator: acme/eslint-setup`,
     note: "The nested generator runs with the same cwd and context. Its prompts are run interactively before its actions execute.",
   },
 ];
 
-const conditionalExample = `{
-  "type": "template",
-  "source": "templates/docker-compose.yml.hbs",
-  "target": "docker-compose.yml",
-  "if": "withDocker && packageManager === 'pnpm'"
-}`;
+const conditionalExample = `type: template
+source: templates/docker-compose.yml.hbs
+target: docker-compose.yml
+if: "withDocker && packageManager === 'pnpm'"`;
 
 export default function ActionsPage() {
   return (
@@ -200,7 +175,7 @@ export default function ActionsPage() {
           Every action supports an <code>if</code> field — a JavaScript expression evaluated against
           the merged context of signals + prompt answers. The action is skipped when falsy.
         </p>
-        <CodeBlock code={conditionalExample} lang="json" />
+        <CodeBlock code={conditionalExample} lang="yaml" />
       </section>
 
       <section className="space-y-6">
@@ -235,7 +210,7 @@ export default function ActionsPage() {
               </table>
             </div>
 
-            <CodeBlock code={action.example} lang="json" />
+            <CodeBlock code={action.example} lang="yaml" />
             {action.note && <Callout variant="info">{action.note}</Callout>}
           </div>
         ))}

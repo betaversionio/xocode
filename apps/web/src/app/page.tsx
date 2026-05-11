@@ -33,7 +33,7 @@ const features = [
   {
     icon: GitBranch,
     title: "Declarative generators",
-    desc: "Define everything as a generator.json manifest. No code required — just declare what to copy, render, inject, or merge.",
+    desc: "Define everything as a generator.yaml manifest. No code required — just declare what to copy, render, inject, or merge.",
   },
   {
     icon: Zap,
@@ -53,7 +53,7 @@ const features = [
   {
     icon: Package,
     title: "GitHub-native registry",
-    desc: "Publish a generator by pushing generator.json to any GitHub repo. No registry account, no upload step — just a URL.",
+    desc: "Publish a generator by pushing generator.yaml to any GitHub repo. No registry account, no upload step — just a URL.",
   },
   {
     icon: Terminal,
@@ -62,48 +62,37 @@ const features = [
   },
 ];
 
-const generatorExample = `{
-  "name": "acme/react-component",
-  "type": "feature",
-  "requires": ["acme/react-setup"],
-  "detects": [
-    { "signal": "pkg:react", "exists": true }
-  ],
-  "prompts": [
-    {
-      "name": "componentName",
-      "type": "input",
-      "message": "Component name?"
-    },
-    {
-      "name": "withTests",
-      "type": "confirm",
-      "message": "Add a test file?"
-    }
-  ],
-  "actions": [
-    {
-      "type": "template",
-      "source": "templates/component.tsx.hbs",
-      "target": "src/components/{{pascalCase componentName}}/index.tsx"
-    },
-    {
-      "type": "template",
-      "source": "templates/test.tsx.hbs",
-      "target": "src/components/{{pascalCase componentName}}/index.test.tsx",
-      "if": "withTests"
-    }
-  ]
-}`;
+const generatorExample = `name: acme/react-component
+type: feature
+requires:
+  - acme/react-setup
+detects:
+  - signal: pkg:react
+    exists: true
+prompts:
+  - name: componentName
+    type: input
+    message: Component name?
+  - name: withTests
+    type: confirm
+    message: Add a test file?
+actions:
+  - type: template
+    source: templates/component.tsx.hbs
+    target: "src/components/{{pascalCase componentName}}/index.tsx"
+  - type: template
+    source: templates/test.tsx.hbs
+    target: "src/components/{{pascalCase componentName}}/index.test.tsx"
+    if: withTests`;
 
 const faqs = [
   {
     q: "What makes xo different from Plop or Yeoman?",
-    a: "xo uses a declarative JSON format instead of code, has first-class support for signal-based detection so generators self-configure, and maintains a full undo history. It also uses GitHub repos as a zero-friction registry.",
+    a: "xo uses a declarative YAML format instead of code, has first-class support for signal-based detection so generators self-configure, and maintains a full undo history. It also uses GitHub repos as a zero-friction registry.",
   },
   {
     q: "Do I need to create an account to publish a generator?",
-    a: "No. A generator is just a generator.json file in any public GitHub repository. Anyone can run it with xo add <github-user>/<repo>.",
+    a: "No. A generator is just a generator.yaml file in any public GitHub repository. Anyone can run it with xo add <github-user>/<repo>.",
   },
   {
     q: "Can I use xo with any framework or language?",
@@ -227,7 +216,7 @@ export default function HomePage() {
             className="mt-16 flex flex-wrap items-center justify-center gap-8 text-center"
           >
             {[
-              { value: "JSON", label: "No code required" },
+              { value: "YAML", label: "No code required" },
               { value: "GitHub", label: "Native registry" },
               { value: "∞", label: "Frameworks supported" },
             ].map((stat) => (
@@ -304,11 +293,11 @@ export default function HomePage() {
                   Simple by design
                 </p>
                 <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                  A generator is just a JSON file
+                  A generator is just a YAML file
                 </h2>
               </motion.div>
               <motion.p variants={fadeUp} className="leading-relaxed text-muted-foreground">
-                Drop a <code>generator.json</code> in any GitHub repo and anyone can
+                Drop a <code>generator.yaml</code> in any GitHub repo and anyone can
                 run it with <code>xo add</code>. No registry account needed.
               </motion.p>
               <motion.div
@@ -350,7 +339,7 @@ export default function HomePage() {
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.7, ease }}
             >
-              <CodeBlock code={generatorExample} filename="generator.json" lang="json" />
+              <CodeBlock code={generatorExample} filename="generator.yaml" lang="yaml" />
             </motion.div>
           </div>
         </div>

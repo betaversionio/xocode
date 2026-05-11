@@ -1,42 +1,130 @@
-# Generator Configuration Reference
+# Generator Reference
 
-A generator is a directory containing a `generator.json` file, optional templates, and optional scripts.
+A generator is a GitHub repository that contains one or more workflows, templates, and optional scripts. Generators are published to the xo registry and invoked by running `xo add <name>`, `xo create <name>`, or `xo run <name>`.
 
-## Directory Layout
+There are two repo roles in the xo ecosystem:
 
-```
-ui/button/
- ├─ generator.json
- ├─ templates/
- │   └─ button.tsx
- └─ scripts/
-     └─ post-install.sh
-```
+| Role | What it is |
+|---|---|
+| **Generator repo** | Provides workflows and templates. Lives on GitHub. |
+| **Project repo** | Uses xo. A normal project that runs `xo add` commands. |
 
 ---
 
-## `generator.json` — Full Reference
+## Generator Repo Structure
+
+### Single-trigger generator
+
+Use this when your generator only responds to one command (e.g. `xo add`).
+
+```
+xo-stripe/                         ← GitHub: my-org/xo-stripe
+├── workflow.yaml                   ← entry point
+├── templates/
+│   ├── stripe-route.ts             ← copied into the user's project
+│   └── stripe-webhook.ts
+└── scripts/
+    └── post-install.sh
+```
+
+### Multi-trigger generator
+
+Use `workflows/` when you want to handle both `xo add` and `xo create` from the same repo.
+
+```
+xo-stripe/
+├── workflows/
+│   ├── add.yaml                    ← xo add payment/stripe
+│   └── create.yaml                 ← xo create payment/stripe
+├── templates/
+│   └── stripe-route.ts
+└── scripts/
+    └── post-install.sh
+```
+
+xo looks for `workflows/<trigger>.yaml` first, then falls back to `workflow.yaml` at the root.
+
+### Multi-component repo (shadcn-style)
+
+One repo can host many generators — each in its own subdirectory with its own `workflow.yaml` and `templates/`.
+
+```
+xo-ui/                              ← GitHub: my-org/xo-ui
+├── button/
+│   ├── workflow.yaml               ← name: ui/button
+│   └── templates/
+│       └── button.tsx
+├── alert/
+│   ├── workflow.yaml               ← name: ui/alert
+│   └── templates/
+│       └── alert.tsx
+├── card/
+│   ├── workflow.yaml               ← name: ui/card
+│   └── templates/
+│       └── card.tsx
+└── shared/
+    └── utils.ts                    ← shared across components
+```
+
+Register each component separately using `--path` to point at the subdirectory:
+
+```bash
+xo registry add ui/button --url https://github.com/my-org/xo-ui --path button
+xo registry add ui/alert  --url https://github.com/my-org/xo-ui --path alert
+xo registry add ui/card   --url https://github.com/my-org/xo-ui --path card
+```
+
+Then use them as normal:
+
+```bash
+xo add ui/button
+xo add ui/alert
+```
+
+The `--path` entry is stored in `~/.xo/registry.json` and used when fetching from GitHub.
+
+---
+
+## Project Repo Structure
+
+A project that uses xo needs no special setup. xo adds two things automatically:
+
+```
+my-next-app/                        ← any project
+├── src/
+├── package.json
+├── xo.config.yaml                  ← written by xo, tracks project config
+└── .xo/
+    └── state.json                  ← operation history (powers xo undo)
+```
+
+`xo.config.yaml` after running a few workflows:
+
+```yaml
+template: next-app
+packageManager: pnpm
+features:
+  - payment/stripe
+  - auth/jwt
+  - ui/button
+ui:
+  componentsDir: src/components/ui
+```
+
+`.xo/state.json` — do not edit manually:
 
 ```json
 {
-  "name": "ui/button",
-  "type": "feature",
-  "requires": ["ui.componentsDir"],
-  "dependencies": ["ui/base"],
-  "conflicts": ["ui/mui"],
-  "provides": ["ui"],
-  "prompts": [
+  "operations": [
     {
-      "name": "componentName",
-      "type": "input",
-      "message": "Component name"
-    }
-  ],
-  "actions": [
-    {
-      "type": "copy",
-      "from": "templates/button.tsx",
-      "to": "{{config.ui.componentsDir}}/{{componentName}}.tsx"
+      "id": "a3f1c2d4-...",
+      "timestamp": "2025-01-15T10:30:00Z",
+      "generator": "payment/stripe",
+      "type": "add",
+      "files": [
+        { "filePath": "app/api/stripe/route.ts", "action": "created" },
+        { "filePath": ".env.example", "action": "modified", "before": "..." }
+      ]
     }
   ]
 }
@@ -44,192 +132,310 @@ ui/button/
 
 ---
 
-## Fields
+## Global xo State (per machine)
 
-### `name`
-
-Namespaced path identifier. Used when calling `xo add <name>`.
-
-```json
-{ "name": "payment/stripe" }
+```
+~/.xo/
+├── registry.json                   ← maps generator names → GitHub URLs
+└── cache/
+    └── my-org/
+        └── xo-stripe/
+            └── workflow.yaml       ← fetched from GitHub, cached locally
 ```
 
----
-
-### `type`
-
-```json
-{ "type": "feature" }
-```
-
-- `"feature"` — added to an existing project via `xo add`
-- `"project"` — creates a new project via `xo create`
-
----
-
-### `requires`
-
-Dot-notation paths into `xo.config.json`. If a key is missing, xo prompts the user and saves the answer automatically.
+`~/.xo/registry.json`:
 
 ```json
 {
-  "requires": ["ui.componentsDir", "database.url"]
+  "payment/stripe": {
+    "url": "https://github.com/my-org/xo-stripe",
+    "addedAt": "2025-01-15T10:00:00Z"
+  }
 }
 ```
 
 ---
 
-### `dependencies`
+## Using a Generator — Two Ways
 
-Other generators that must be applied before this one. xo resolves and runs them automatically.
+### 1. Direct GitHub reference (no registration needed)
 
-```json
-{
-  "dependencies": ["database/postgres", "auth/jwt"]
-}
+Use the `@github/` prefix to run any public or private GitHub repo directly:
+
+```bash
+# Root workflow.yaml in the repo
+xo add @github/my-org/xo-stripe
+
+# Subpath — for multi-component repos (shadcn-style)
+xo add @github/my-org/xo-ui/button
+
+# Pin to a tag (cached forever — immutable)
+xo add @github/my-org/xo-ui/button@v1.2.0
+
+# Pin to a branch (always fetches latest)
+xo add @github/my-org/xo-ui#main
+xo add @github/my-org/xo-ui/button#dev
+
+# Deep subpath
+xo add @github/my-org/xo-ui/components/button@v2.0.0
+```
+
+For private repos, set `XO_GITHUB_TOKEN` in your environment:
+
+```bash
+XO_GITHUB_TOKEN=ghp_xxxx xo add @github/my-org/private-generators/auth
+```
+
+### 2. Registry (named shorthand)
+
+Register a generator once, then use a short name forever:
+
+```bash
+xo registry add payment/stripe --url https://github.com/my-org/xo-stripe
+xo add payment/stripe           # uses the registered name
+
+# Multi-component repo — register each with --path
+xo registry add ui/button --url https://github.com/my-org/xo-ui --path button
+xo add ui/button
+```
+
+```bash
+xo registry list
+xo registry remove payment/stripe
 ```
 
 ---
 
-### `detects`
+## Testing a Generator Locally
 
-Rules that identify what kind of project this generator belongs to. Used by `xo add` to verify compatibility before running, and by `xo` to auto-detect the project's origin template.
+### `xo link` — preferred for repeated testing
 
-xo core does not know any frameworks. Every generator teaches xo how to recognize itself via signal rules.
+`xo link` works like `npm link`: register your local directory once, then use the generator by name from any project — no paths, no `--local` flag, and no re-linking when you edit files.
 
-```json
-{
-  "detects": [
-    { "signal": "file.package.json", "exists": true },
-    { "signal": "json.package.json.dependencies.next", "exists": true }
-  ]
-}
+```bash
+# Inside your generator repo
+cd ~/projects/xo-button
+xo link                    # reads name: ui/button from workflow.yaml
+```
+
+Now from any project:
+
+```bash
+xo add ui/button           # resolves to ~/projects/xo-button automatically
+```
+
+Changes to `workflow.yaml` or `templates/` are picked up immediately on the next run. When you're done testing:
+
+```bash
+cd ~/projects/xo-button
+xo unlink                  # removes the link by matching the current directory
+```
+
+See all currently linked generators:
+
+```bash
+xo links
+```
+
+Pre-fill inputs to skip prompts during testing:
+
+```bash
+xo add ui/button -i componentName=Button -i variant=primary
+xo add ui/button --dry-run -i componentName=TestCard
+```
+
+`--dry-run` previews all actions without writing files or running commands.
+
+### `--local` — one-off runs
+
+For a single run without linking, pass a path directly:
+
+```bash
+xo add ./path/to/my-generator --local
+xo create ./path/to/my-template --local --dry-run
+```
+
+For repeated testing, prefer `xo link` — it's persistent and doesn't require a path each time.
+
+---
+
+## Writing a Generator
+
+A generator's `workflow.yaml` is the entry point. See [Workflow Reference](workflows.md) for the full schema. For reusable logic beyond `xo/*` built-ins, see [Custom Actions](actions.md#custom-actions).
+
+### Generator repo structure (with custom actions)
+
+```
+xo-button/
+├── workflow.yaml             ← entry point
+├── templates/
+│   └── Button.tsx            ← rendered into the project
+├── actions/
+│   ├── add-barrel.yaml       ← composite action (composes xo/* steps)
+│   └── validate-name.js      ← script action (custom Node.js logic)
+└── scripts/
+    └── post-install.sh
+```
+
+Actions in `actions/` are local to this generator. Reference them with `uses: ./actions/name.yaml` or `uses: ./actions/name.js`. To share an action across multiple generators, publish it as a GitHub action and reference it with `uses: @github/owner/repo`.
+
+---
+
+### Minimal example — add a UI component
+
+```
+xo-button/
+├── workflow.yaml
+└── templates/
+    └── button.tsx
+```
+
+```yaml
+# workflow.yaml
+name: ui/button
+on: [add]
+description: Add a reusable Button component
+
+detects:
+  - pkg: react
+    exists: true
+
+inputs:
+  componentName:
+    prompt: "Component name?"
+    default: Button
+
+jobs:
+  detect:
+    steps:
+      - uses: xo/file-exists
+        id: hasComponentsDir
+        with:
+          path: "{{config.ui.componentsDir}}"
+
+  copy:
+    needs: [detect]
+    steps:
+      - uses: xo/copy
+        with:
+          from: templates/button.tsx
+          to: "{{config.ui.componentsDir}}/{{inputs.componentName}}.tsx"
+```
+
+### Full example — add Stripe with multi-job orchestration
+
+```
+xo-stripe/
+├── workflow.yaml
+└── templates/
+    ├── stripe-route.ts
+    └── stripe-service.ts
+```
+
+```yaml
+# workflow.yaml
+name: payment/stripe
+on: [add]
+description: Add Stripe payment processing
+
+detects:
+  - file: package.json
+    exists: true
+
+dependencies:
+  - auth/jwt
+
+conflicts:
+  - payment/paddle
+
+provides:
+  - payment
+
+inputs:
+  secretKey:
+    prompt: "Stripe secret key?"
+    required: true
+
+jobs:
+  detect:
+    steps:
+      - uses: xo/detect-pm
+        id: pm
+      - uses: xo/pkg-installed
+        id: hasNext
+        with:
+          pkg: next
+
+  install:
+    needs: [detect]
+    steps:
+      - uses: xo/install-pkg
+        with:
+          pkg: stripe
+
+      - uses: xo/env
+        with:
+          file: .env.example
+          variables:
+            STRIPE_SECRET_KEY: ""
+            STRIPE_WEBHOOK_SECRET: ""
+
+  configure:
+    needs: [install]
+    steps:
+      - if: "steps.hasNext.outputs.installed == true"
+        uses: xo/copy
+        with:
+          from: templates/stripe-route.ts
+          to: app/api/stripe/route.ts
+
+      - uses: xo/ast-import
+        with:
+          file: src/app.module.ts
+          import: StripeModule
+          from: ./stripe/stripe.module
+
+      - run: "{{steps.pm.outputs.value}} db:push"
+```
+
+---
+
+## `detects` — Pre-flight Compatibility Check
+
+Declare `detects` rules to verify the project is compatible before inputs are collected or any steps run. These are simple file and package checks — xo does not auto-scan anything.
+
+```yaml
+detects:
+  - file: package.json
+    exists: true
+  - pkg: next
+    exists: true
 ```
 
 Flutter example:
-```json
-{
-  "detects": [
-    { "signal": "file.pubspec.yaml", "exists": true }
-  ]
-}
+
+```yaml
+detects:
+  - file: pubspec.yaml
+    exists: true
 ```
 
 Multiple rules are AND-ed. Supported operators: `exists`, `equals`, `matches`.
 
-Signals come from the signal-scanner — see [Architecture](architecture.md) for full signal reference.
+For richer detection inside the workflow (detecting framework, language, specific config values), use detection actions in a `detect` job — see [Action Reference](actions.md#detection-actions).
 
 ---
 
-### `conflicts`
+## Dependencies, Conflicts, Provides
 
-Generators that cannot coexist with this one. xo aborts with an error if a conflicting generator is already installed.
+```yaml
+dependencies:
+  - database/postgres   # runs before this workflow automatically
+  - auth/jwt
 
-```json
-{
-  "conflicts": ["auth/firebase"]
-}
-```
+conflicts:
+  - auth/firebase       # xo aborts if already installed
 
----
-
-### `provides`
-
-Abstract capability tags. Used to check if a requirement is already satisfied without caring about the specific implementation.
-
-```json
-{
-  "provides": ["auth", "ui"]
-}
-```
-
----
-
-## Prompt System
-
-### Types
-
-| Type | Description |
-|---|---|
-| `input` | Free text input |
-| `select` | Single choice from a list |
-| `confirm` | Yes / no boolean |
-| `multiselect` | Multiple choices from a list |
-
-### Basic prompt
-
-```json
-{
-  "prompts": [
-    {
-      "name": "componentName",
-      "type": "input",
-      "message": "Component name"
-    }
-  ]
-}
-```
-
-### Select prompt
-
-```json
-{
-  "prompts": [
-    {
-      "name": "framework",
-      "type": "select",
-      "message": "Choose framework",
-      "choices": ["react", "next", "flutter"]
-    }
-  ]
-}
-```
-
-### Conditional prompt
-
-The `when` field is an expression evaluated against previously collected prompt values and config.
-
-```json
-{
-  "prompts": [
-    {
-      "name": "uiLibrary",
-      "type": "select",
-      "message": "Choose UI library",
-      "when": "framework == \"react\"",
-      "choices": ["shadcn", "mui", "chakra"]
-    }
-  ]
-}
-```
-
-### Supported `when` operators
-
-```
-==   equals
-!=   not equals
-&&   and
-||   or
-```
-
----
-
-## Variable System
-
-Variables are available inside any string value using `{{double-braces}}`.
-
-| Namespace | Source |
-|---|---|
-| `{{prompt.*}}` | Answers from the current prompt session |
-| `{{config.*}}` | Values from `xo.config.json` |
-| `{{env.*}}` | Environment variables |
-| `{{system.*}}` | Auto-detected project info (framework, packageManager, etc.) |
-
-### Examples
-
-```
-{{prompt.componentName}}
-{{config.ui.componentsDir}}
-{{env.NODE_ENV}}
-{{system.packageManager}}
+provides:
+  - auth                # abstract capability tag
 ```

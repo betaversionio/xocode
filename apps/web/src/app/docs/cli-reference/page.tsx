@@ -134,14 +134,14 @@ export default function CliReferencePage() {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Generator resolution</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          xo looks for <code>generator.json</code> in this order:
+          xo looks for <code>generator.yaml</code> (or <code>generator.yml</code> / <code>generator.json</code>) in this order:
         </p>
         <div className="space-y-3">
           {[
             { step: "1", title: "Local path", desc: "Name starts with ./ or / → reads directly from that directory." },
-            { step: "2", title: "Project-local", desc: ".xo/generators/<name>/generator.json in the current project." },
-            { step: "3", title: "Global cache", desc: "~/.xo/generators/<name>/generator.json." },
-            { step: "4", title: "GitHub fetch", desc: "Fetches from https://raw.githubusercontent.com/<owner>/<repo>/main/generator.json and caches globally." },
+            { step: "2", title: "Project-local", desc: ".xo/generators/<name>/generator.yaml in the current project." },
+            { step: "3", title: "Global cache", desc: "~/.xo/generators/<name>/generator.yaml." },
+            { step: "4", title: "GitHub fetch", desc: "Fetches from https://raw.githubusercontent.com/<owner>/<repo>/main/generator.yaml and caches globally." },
           ].map((item) => (
             <div key={item.step} className="flex gap-4 rounded-lg border border-border bg-card p-4">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
@@ -156,7 +156,7 @@ export default function CliReferencePage() {
         </div>
         <Callout variant="tip" title="Subpath generators">
           The name <code>owner/repo/subpath</code> maps to{" "}
-          <code>…/owner/repo/main/subpath/generator.json</code> — letting you host multiple
+          <code>…/owner/repo/main/subpath/generator.yaml</code> — letting you host multiple
           generators in a single GitHub repo.
         </Callout>
       </section>
@@ -166,16 +166,16 @@ export default function CliReferencePage() {
         <h2 className="text-xl font-semibold">Project files written by xo</h2>
         <div className="space-y-3">
           <div className="rounded-lg border border-border bg-card p-4">
-            <p className="mb-1 font-mono text-sm font-semibold text-primary">xo.config.json</p>
+            <p className="mb-1 font-mono text-sm font-semibold text-primary">xo.config.yaml</p>
             <p className="mb-3 text-xs text-muted-foreground">
               Records the applied template and features. Used by requires/conflicts validation on subsequent runs. Commit this file.
             </p>
             <CodeBlock
-              code={`{
-  "template": "acme/nextjs-starter",
-  "features": ["acme/shadcn-setup", "acme/auth-jwt"]
-}`}
-              lang="json"
+              code={`template: acme/nextjs-starter
+features:
+  - acme/shadcn-setup
+  - acme/auth-jwt`}
+              lang="yaml"
             />
           </div>
           <div className="rounded-lg border border-border bg-card p-4">

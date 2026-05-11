@@ -5,46 +5,40 @@ import { Callout } from "@/components/callout";
 
 export const metadata: Metadata = { title: "Signals Reference" };
 
-const signalExample = `{
-  "file:package.json": true,
-  "file:tsconfig.json": true,
-  "file:tailwind.config.ts": true,
-  "file:prisma/schema.prisma": false,
-  "pkg:react": true,
-  "pkg:next": true,
-  "pkg:typescript": true,
-  "script:build": true,
-  "script:dev": true,
-  "framework": "nextjs",
-  "packageManager": "pnpm",
-  "language": "typescript",
-  "isMonorepo": false
-}`;
+const signalExample = `"file:package.json": true
+"file:tsconfig.json": true
+"file:tailwind.config.ts": true
+"file:prisma/schema.prisma": false
+"pkg:react": true
+"pkg:next": true
+"pkg:typescript": true
+"script:build": true
+"script:dev": true
+framework: nextjs
+packageManager: pnpm
+language: typescript
+isMonorepo: false`;
 
-const detectsExample = `{
-  "name": "acme/prisma-setup",
-  "type": "feature",
-  "detects": [
-    { "signal": "language",                  "equals": "typescript"    },
-    { "signal": "packageManager",            "matches": "^(npm|pnpm)$" },
-    { "signal": "file:prisma/schema.prisma", "exists":  false          }
-  ],
-  "actions": [...]
-}`;
+const detectsExample = `name: acme/prisma-setup
+type: feature
+detects:
+  - signal: language
+    equals: typescript
+  - signal: packageManager
+    matches: "^(npm|pnpm)$"
+  - signal: "file:prisma/schema.prisma"
+    exists: false
+actions: []`;
 
-const promptWhenExample = `{
-  "name": "addDockerCompose",
-  "type": "confirm",
-  "message": "Add docker-compose.yml?",
-  "when": "isMonorepo === false && framework === 'nestjs'"
-}`;
+const promptWhenExample = `name: addDockerCompose
+type: confirm
+message: Add docker-compose.yml?
+when: "isMonorepo === false && framework === 'nestjs'"`;
 
-const actionIfExample = `{
-  "type": "template",
-  "source": "templates/jest.config.ts.hbs",
-  "target": "jest.config.ts",
-  "if": "language === 'typescript'"
-}`;
+const actionIfExample = `type: template
+source: templates/jest.config.ts.hbs
+target: jest.config.ts
+if: "language === 'typescript'"`;
 
 const templateSignalsExample = `// adapts to project setup automatically
 export default {
@@ -79,7 +73,7 @@ export default function SignalsPage() {
         <p className="text-sm text-muted-foreground">
           A typical Next.js + TypeScript project signal map:
         </p>
-        <CodeBlock code={signalExample} filename="signal map (computed at runtime)" lang="json" />
+        <CodeBlock code={signalExample} filename="signal map (computed at runtime)" lang="yaml" />
       </section>
 
       <section className="space-y-6">
@@ -109,9 +103,11 @@ export default function SignalsPage() {
             <code>devDependencies</code>, and <code>peerDependencies</code>.
           </p>
           <CodeBlock
-            code={`{ "signal": "pkg:@nestjs/core", "exists": true }   // NestJS project
-{ "signal": "pkg:drizzle-orm",  "exists": false }  // NOT using Drizzle`}
-            lang="json"
+            code={`- signal: "pkg:@nestjs/core"
+  exists: true   # NestJS project
+- signal: pkg:drizzle-orm
+  exists: false  # NOT using Drizzle`}
+            lang="yaml"
           />
         </div>
 
@@ -160,7 +156,7 @@ export default function SignalsPage() {
           The <code>detects</code> array lets you declare which project types a generator is compatible
           with. All rules must pass — they are ANDed together.
         </p>
-        <CodeBlock code={detectsExample} lang="json" />
+        <CodeBlock code={detectsExample} lang="yaml" />
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/50">
@@ -199,9 +195,9 @@ export default function SignalsPage() {
           <code>when</code> (prompt conditions) and <code>if</code> (action conditions).
         </p>
         <p className="text-sm font-medium">In a prompt <code>when</code> field:</p>
-        <CodeBlock code={promptWhenExample} lang="json" />
+        <CodeBlock code={promptWhenExample} lang="yaml" />
         <p className="mt-4 text-sm font-medium">In an action <code>if</code> field:</p>
-        <CodeBlock code={actionIfExample} lang="json" />
+        <CodeBlock code={actionIfExample} lang="yaml" />
         <Callout variant="info" title="Package signals in expressions">
           In <code>if</code> / <code>when</code> expressions, keys like <code>pkg:react</code> are
           not valid JS identifiers. Use <code>{"{ signal: 'pkg:react', exists: true }"}</code> in{" "}

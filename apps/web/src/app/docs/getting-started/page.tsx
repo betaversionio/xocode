@@ -42,10 +42,10 @@ export default function GettingStartedPage() {
         <TerminalBlock commands={["mkdir my-app && cd my-app", "xo create acme/nextjs-starter"]} />
         <p className="text-sm text-muted-foreground">xo will:</p>
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted-foreground">
-          <li>Fetch <code>generator.json</code> from <code>https://github.com/acme/nextjs-starter</code></li>
+          <li>Fetch <code>generator.yaml</code> from <code>https://github.com/acme/nextjs-starter</code></li>
           <li>Run any interactive prompts defined in the generator</li>
           <li>Execute all actions — copy files, render templates, run install commands</li>
-          <li>Write <code>xo.config.json</code> to record the applied template</li>
+          <li>Write <code>xo.config.yaml</code> to record the applied template</li>
         </ol>
       </section>
 
@@ -100,7 +100,7 @@ export default function GettingStartedPage() {
         <TerminalBlock commands={["xo undo"]} />
         <CodeBlock code={`✓ Reverted "acme/auth-jwt" — 4 file(s) restored`} lang="output" />
         <Callout variant="tip" title="Commit your state files">
-          Commit <code>.xo/state.json</code> and <code>xo.config.json</code> so your team shares the same generator history.
+          Commit <code>.xo/state.json</code> and <code>xo.config.yaml</code> so your team shares the same generator history.
         </Callout>
       </section>
 
@@ -127,7 +127,7 @@ export default function GettingStartedPage() {
         <h2 className="text-lg font-semibold">What's next?</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            { title: "Create a generator", desc: "Build and publish your own generator.json", href: "/docs/creating-generators" },
+            { title: "Create a generator", desc: "Build and publish your own generator.yaml", href: "/docs/creating-generators" },
             { title: "Actions reference", desc: "See all 11 action types with full examples", href: "/docs/actions" },
             { title: "Signals reference", desc: "Understand how xo introspects your project", href: "/docs/signals" },
             { title: "CLI reference", desc: "Full reference for all xo commands", href: "/docs/cli-reference" },

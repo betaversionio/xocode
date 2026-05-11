@@ -1,22 +1,35 @@
 import { createPromptModule } from "inquirer";
-import type { Prompt } from "../types.js";
-import { evaluate } from "../utils/expression.js";
+import type { WorkflowInput } from "../types.js";
 
 const prompt = createPromptModule();
 
-export async function runPrompts(
-  prompts: Prompt[],
-  ctx: Record<string, unknown> = {},
+export async function collectInputs(
+  inputs: Record<string, WorkflowInput>,
+  prefilled: Record<string, unknown> = {},
 ): Promise<Record<string, unknown>> {
-  const questions = prompts
-    .filter((p) => !p.when || evaluate(p.when, ctx))
-    .map((p) => ({
-      name: p.name,
-      type: p.type === "multiselect" ? "checkbox" : p.type === "select" ? "list" : p.type,
-      message: p.message,
-      ...(p.choices ? { choices: p.choices } : {}),
-    }));
+  const result: Record<string, unknown> = { ...prefilled };
 
-  if (questions.length === 0) return {};
-  return prompt(questions);
+  const toPrompt = Object.entries(inputs).filter(([name]) => result[name] === undefined);
+
+  if (toPrompt.length === 0) return result;
+
+  const questions = toPrompt.map(([name, input]) => ({
+    name,
+    type:
+      input.type === "multiselect"
+        ? "checkbox"
+        : input.type === "select"
+          ? "list"
+          : input.type ?? "input",
+    message: input.prompt,
+    default: input.default,
+    ...(input.choices ? { choices: input.choices } : {}),
+    validate: input.required
+      ? (v: unknown) =>
+          v !== "" && v !== undefined && v !== null ? true : `${name} is required`
+      : undefined,
+  }));
+
+  const answers = await prompt(questions);
+  return { ...result, ...answers };
 }
